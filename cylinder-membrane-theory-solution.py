@@ -10,6 +10,10 @@ Created on 19 Feb 2024
 ## import packages
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+import math
+
+import conicalgeometrytocylindrical as geometry
 
 ## function definitions
 ### dN over general 2D element with dA=R*dth*dz
@@ -41,14 +45,14 @@ def PStresses(P,R,th_n,z_n):
 
 def TStresses(T,R,th_n,z_n):
     dN_th = np.zeros((th_n,z_n));
-    dN_zth = T*np.ones((th_n,z_n))/(2*np.pi*(R^2));
+    dN_zth = T*np.ones((th_n,z_n))/(2*np.pi*R*R);
     dN_z = np.zeros((th_n,z_n));
     return [dN_th, dN_zth, dN_z]
 
 def MStresses(M,R,coords,th_n,z_n):
     dN_th = np.zeros((th_n,z_n));
     dN_zth = np.zeros((th_n,z_n));
-    dN_z = (M/(np.pi*(R^2)))*np.cos(coords[1]);
+    dN_z = (M/(np.pi*R*R))*np.cos(coords[1]);
     return [dN_th, dN_zth, dN_z]
 
 def QStresses(Q,R,coords,th_n,z_n):
@@ -76,15 +80,22 @@ def N_zthInducesN_z(N_zth,R,th,z,th_n,z_n):
 ## input cylindrical shell geometry
 # - radius "R" (mm)
 # - height "H" (mm)
-# - sector angle "TH" (radians)
-R = 500;
-H = 1000;
+# - thickness "t" (mm)
+# - segment angle "TH" (radians)
 TH = 2*np.pi;
-t = 1;
+
+filename = "Sadowskietal2023-benchmarkgeometries.csv";
+strakeID = int(104);
+# gives list of [H,R,t] values for given strake, in mm
+geom = geometry.findStrakeGeometry(filename, strakeID);
+H = geom[0][0];
+R = geom[1][0];
+t = geom[2][0];
 
 ## cylindrical coordinates r,th,z (radial, circumferential, meridional)
 ### arrays where th = row, z = column
-th_n = 360; z_n = int(H/2 +1);
+th_n = 360;
+z_n = math.ceil(H/2);
 th = np.linspace(0,TH,th_n);
 z = np.linspace(0,H,z_n);
 ### coords[0] = z-coords, coords[1] = th-coords
@@ -118,7 +129,7 @@ R_z = -P*np.ones((th_n,))/(2*R*np.pi); # from axial force
 R_z += -np.trapz(p_z,z,axis=1); # from tangential pressure
 
 R_th = -Q*np.sin(th)/(2*np.pi*R); # from shear force Q
-R_th += -T/(2*np.pi*(R^2)); # from torsion
+R_th += -T*np.ones((th_n,))/(2*np.pi*R*R); # from torsion
 R_th += -np.trapz(p_th,z,axis=1); # from circ pressure
 
 R_rho = -Q*np.cos(th)/(2*np.pi*R); # from shear force Q
