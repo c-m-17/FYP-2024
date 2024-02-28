@@ -10,19 +10,29 @@ import pandas as pd
 def averageRadius(d_1,d_2,beta):
     return 0.25*(d_1+d_2)/math.cos(beta)
 
-def inclinedMeridionalLength(h,beta):
-    return h/math.cos(beta)
+# def inclinedMeridionalLength(h,beta):
+#     return h/math.cos(beta)
 
 # returns the *cylindrical* geometry of a given strake
 def findStrakeGeometry(filename,strakeID):
     geoms = pd.read_csv(filename);
-
-    h = geoms['h (mm)'].loc[geoms["ID"] == strakeID];
-    beta = geoms['beta (rad)'].loc[geoms["ID"] == strakeID];
-    d_1 = geoms['d1 (top) (mm)'].loc[geoms["ID"] == strakeID];
-    d_2 = geoms['d2 (bottom) (mm)'].loc[geoms["ID"] == strakeID];
-    t = geoms['t (mm)'].loc[geoms["ID"] == strakeID];
+    I = geoms.loc[geoms["ID"] == strakeID].index.tolist()[0];
     
-    l = inclinedMeridionalLength(h, beta);
+    h = geoms['h (mm)'].iloc[I];
+    beta = geoms['beta (rad)'].iloc[I];
+    d_1 = geoms['d1 (top) (mm)'].iloc[I];
+    d_2 = geoms['d2 (bottom) (mm)'].iloc[I];
+    t = geoms['t (mm)'].iloc[I];
+    
     R = averageRadius(d_1, d_2, beta);
-    return [l.unique(),R.unique(),t.unique()]
+    return [h,R,t]
+
+# returns the global z-coordinate of the given strake's bottom boundary
+def findStrakePositionGlobal(filename,strakeID):
+    geoms = pd.read_csv(filename);
+    I = geoms.loc[geoms["ID"] == strakeID].index.tolist()[0];
+    
+    H = sum(geoms["h (mm)"]); # total tower height
+    z0 = H - sum(geoms["h (mm)"].iloc[range(0,I+1,1)]); # z*=0 in global z-coord
+    
+    return [z0,H]
