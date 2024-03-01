@@ -23,16 +23,16 @@ def p_rStresses(p_r,R):
     dN_z = 0;
     return [dN_th, dN_zth, dN_z]
 
-def p_thStresses(p_th,H):
+def p_thStresses(p_th,h):
     dN_th = 0;
-    dN_zth = -p_th*H;
+    dN_zth = -p_th*h;
     dN_z = 0;
     return [dN_th, dN_zth, dN_z]
 
-def p_zStresses(p_z,H):
+def p_zStresses(p_z,h):
     dN_th = 0;
     dN_zth = 0;
-    dN_z = -p_z*H;
+    dN_z = -p_z*h;
     return [dN_th, dN_zth, dN_z]
 
 def PStresses(P,R):
@@ -47,17 +47,17 @@ def TStresses(T,R):
     dN_z = 0;
     return [dN_th, dN_zth, dN_z]
 
-def MStresses(M,R):
-    dN_th = 0;
-    dN_zth = 0; # *applied* moment gradient = 0. gradient from Q included there.
-    dN_z = M/(math.pi*R*R); # cos(th)
-    return [dN_th, dN_zth, dN_z]
+def MStresses(M,R,theta):
+    # dN_th = 0;
+    # dN_zth = 0; # *applied* moment gradient = 0. gradient from Q included there.
+    dN_z = M*np.cos(theta)/(math.pi*R*R); # cos(th)
+    return dN_z
 
-def QStresses(Q,R,H,z0):
-    dN_th = 0;
-    dN_zth = Q/(math.pi*R); # sin(th)
-    dN_z = -Q*(H-z0)/(math.pi*R*R); # cos(th)
-    return [dN_th, dN_zth, dN_z]
+def QStresses(Q,R,theta,lever_arm):
+    # dN_th = 0;
+    dN_zth = Q*np.sin(theta)/(math.pi*R); # sin(th)
+    dN_z = -Q*np.cos(theta)*lever_arm/(math.pi*R*R); # cos(th)
+    return np.array([dN_zth, dN_z])
 
 ## input cylindrical shell geometry
 # - radius "R" (mm)
@@ -93,77 +93,73 @@ T = gl.importLoadMagnitude("T",filename); # (+ve th-dir)
 M = gl.importLoadMagnitude("M",filename); # (C around y-axis)
 
 ## cylindrical coordinates r,th,z (radial, circumferential, meridional)
-z_n = 361;
-z = np.linspace(0,H,z_n);
+th_n = 361; sec_angle = 2*math.pi;
+theta = np.linspace(0,sec_angle,th_n);
 
-## find global force diagrams
-### reaction forces R(th,z=0) [N/mm]
-R_z = -(P + p_z*H*2*math.pi*R); # vertical reaction force
-R_x = - Q; # p_r cancels over 2pi integral
-R_T = -(T + p_th*2*math.pi*R*R*H); # reaction torque
-R_M = -(M + Q*H); # reaction moment
+## find global internal forces
+### reaction forces R(th,z*=0) [N/mm]
+R_z = -(P/(sec_angle*R) + p_z*(H-z0))*np.ones(len(theta)); # vertical reaction force
+# R_x = - (Q - p_r*(H-z0)*np.cos(theta)); # p_r cancels over 2pi integral
+R_th = - (Q*np.sin(theta)/(sec_angle*R) + p_th*(H-z0));
+R_r = - (Q*-np.cos(theta)/(sec_angle*R) + p_r*(H-z0)) ;
 
-### internal force distributions f(z), from z=0 to z=H
-zshapearray = np.ones((z_n,));
-titles = ["Axial Force Diagram","Shear Force Diagram","Bending Moment Diagram","Global Torque Diagram"]
+R_T = -(T + p_th*sec_angle*R*R*(H-z0)); # reaction torque [Nmm]
+R_M = -(M + Q*(H-z0)); # reaction moment [Nmm]
 
-diagrams = dict();
+### internal forces at z*=H
+titles = ["Axial Force Diagram","Shear Force Diagram","Bending Moment Diagram","Global Torque Diagram","Shear (theta) Force","Shear (radial) Force"]
 
-diagrams[titles[0]] = -R_z - (p_z*2*math.pi*R*z); # axial force (N)
-diagrams[titles[1]] = -R_x*zshapearray; # shear force (N)
-diagrams[titles[2]] = -R_M - Q*z; # bending moment (Nmm)
-diagrams[titles[3]] = -R_T - (p_th*2*math.pi*R*R*z); # torque diagram (Nmm)
+# diagrams = {};
 
-#### plotted
-decision = input("Do you want to plot figures? Y/N:  ");
-if decision == "Y":
-    # extract the following into separate function file?
-    nrows = 2;
-    ncols = 1;
+# diagrams[titles[0]] = -R_z - (p_z*h); # axial force (N/mm)
+# diagrams[titles[1]] = -R_x - (p_r*h*np.cos(theta)); # shear force (N/mm)
+# diagrams[titles[2]] = -R_M - Q*h; # bending moment (Nmm)
+# diagrams[titles[3]] = -R_T - (p_th*sec_angle*R*R*h); # torque diagram (Nmm)
+# diagrams[titles[4]] = -R_th - (p_th*h); # N/mm
+# diagrams[titles[5]] = -R_r - (p_r*h); # N/mm
+
+# #### plotted
+# decision = input("Do you want to plot figures? Y/N:  ");
+# if decision == "Y":
+#     # extract the following into separate function file?
+#     nrows = 2;
+#     ncols = 1;
     
-    xlabel = "z-coordinate [mm]";
-    ylabels = ["[N]",
-               "[N]",
-               "[Nmm]",
-               "[Nmm]"]
+#     xlabel = "z-coordinate [mm]";
+#     ylabels = ["[N]",
+#                "[N]",
+#                "[Nmm]",
+#                "[Nmm]"]
     
-    for i,name in enumerate(titles):
-        plotter(i+1,ncols,nrows,
-                name,z,xlabel,
-                diagrams[name],ylabels[i]);
+    # for i,name in enumerate(titles):
+    #     plotter(i+1,ncols,nrows,
+    #             name,h,xlabel,
+    #             diagrams[name],ylabels[i]);
         
 
 
-## superimpose Ns for INDIVIDUAL STRAKE
+## superimpose Ns for INDIVIDUAL STRAKE at z*=h
 ### from applied loading, N[0] = N_th, N[1] = N_zth, N[2] = N_z
-N = np.zeros(3); # initialise
-N += np.asarray(p_rStresses(p_r, R));
-N += np.asarray(p_thStresses(p_th,h));
-N += np.asarray(p_zStresses(p_z,h));
-N += np.asarray(PStresses(P,R));
-N += np.asarray(TStresses(T,R));
-N += np.asarray(MStresses(M,R));
-N += np.asarray(QStresses(Q,R,H,z0));
+Nh = np.zeros((3,len(theta))); # initialise
+# Nh += np.asarray(p_rStresses(p_r,R));
+# Nh += np.asarray(p_thStresses(p_th,h));
+# Nh += np.asarray(p_zStresses(p_z,h));
+Nh += np.meshgrid(np.ones(th_n),np.asarray(PStresses(P,R)))[1];
+Nh += np.meshgrid(np.ones(th_n),np.asarray(TStresses(T,R)))[1];
+Nh[2,:] += MStresses(M,R,theta);
+Nh[range(1,3),:] += QStresses(Q,R,theta,0);
 
 ### boundary functions
+#### Nz0 i.e. N(z*=0) = reaction forces
+Nz0 = np.array([-R_r,-R_th,-R_z]);
+
 #### BC1
-I = list(abs(z - z0)).index(min(abs(z - z0)));
+f_1 = Nz0[1,:] + p_th*h;
+Nh[1,:] += f_1;
 
-f_1 = (diagrams[titles[1]][I]/(2*math.pi*R)) - N[1];
-N[1] += f_1;
-
-# #### BC2
-f_2 = (diagrams[titles[0]][I]/(2*math.pi*R)) - N[2];
-N[2] += f_2;
-
-# sanity check
-internalF = N*2*math.pi*R;
-err = [];
-for i,name in enumerate(titles):
-    if i >= 2:
-        break
-    err.append(internalF[2-i]/diagrams[name][I]);
-    
+#### BC2
+f_2 = Nz0[2,:] + np.gradient(Nh[1,:],theta)*h/R + p_z*h;
+Nh[2,:] += f_2;
 
 ### plot Ns
 # if decision == "Y":
