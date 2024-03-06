@@ -10,6 +10,8 @@ Created on 19 Feb 2024
 ## import packages
 import numpy as np
 import math
+import matplotlib.pyplot as plt
+from matplotlib import cm
 
 import conicalgeometrytocylindrical as geometry
 import globalloads as gl
@@ -17,47 +19,47 @@ from plotter import plotter
 
 ## function definitions
 ### dN over general 2D element with dA=R*dth*dz
-def p_rStresses(p_r,R):
-    dN_th = p_r*R;
-    dN_zth = 0;
-    dN_z = 0;
-    return [dN_th, dN_zth, dN_z]
+def p_rStresses(p_r,R,Z):
+    dN_th = p_r*R*np.ones(np.shape(Z));
+    dN_zth = np.zeros(np.shape(Z));
+    dN_z = np.zeros(np.shape(Z));
+    return np.array([dN_th, dN_zth, dN_z])
 
-def p_thStresses(p_th,h):
-    dN_th = 0;
-    dN_zth = -p_th*h;
-    dN_z = 0;
-    return [dN_th, dN_zth, dN_z]
+def p_thStresses(p_th,Z):
+    dN_th = np.zeros(np.shape(Z));
+    dN_zth = -p_th*Z;
+    dN_z = np.zeros(np.shape(Z));
+    return np.array([dN_th, dN_zth, dN_z])
 
-def p_zStresses(p_z,h):
-    dN_th = 0;
-    dN_zth = 0;
-    dN_z = -p_z*h;
-    return [dN_th, dN_zth, dN_z]
+def p_zStresses(p_z,Z):
+    dN_th = np.zeros(np.shape(Z));
+    dN_zth = np.zeros(np.shape(Z));
+    dN_z = -p_z*Z;
+    return np.array([dN_th, dN_zth, dN_z])
 
-def PStresses(P,R):
-    dN_th = 0;
-    dN_zth = 0;
-    dN_z = P/(2*math.pi*R);
-    return [dN_th, dN_zth, dN_z]
+def PStresses(P,R,Z):
+    dN_th = np.zeros(np.shape(Z));
+    dN_zth = np.zeros(np.shape(Z));
+    dN_z = P*np.ones(np.shape(Z))/(2*math.pi*R);
+    return np.array([dN_th, dN_zth, dN_z])
 
-def TStresses(T,R):
-    dN_th = 0;
-    dN_zth = T/(2*math.pi*R*R);
-    dN_z = 0;
-    return [dN_th, dN_zth, dN_z]
+def TStresses(T,R,Theta):
+    dN_th = np.zeros(np.shape(Theta));
+    dN_zth = T*np.ones(np.shape(Theta))/(2*math.pi*R**2);
+    dN_z = np.zeros(np.shape(Theta));
+    return np.array([dN_th, dN_zth, dN_z])
 
-def MStresses(M,R,theta):
-    # dN_th = 0;
-    # dN_zth = 0; # *applied* moment gradient = 0. gradient from Q included there.
-    dN_z = M*np.cos(theta)/(math.pi*R*R); # cos(th)
-    return dN_z
+def MStresses(M,R,Theta):
+    dN_th = np.zeros(np.shape(Theta));
+    dN_zth = np.zeros(np.shape(Theta)); # *applied* moment gradient = 0. gradient from Q included there.
+    dN_z = M*np.cos(Theta)/(math.pi*R**2); # cos(th)
+    return np.array([dN_th, dN_zth, dN_z])
 
-def QStresses(Q,R,theta,lever_arm):
-    # dN_th = 0;
-    dN_zth = Q*np.sin(theta)/(math.pi*R); # sin(th)
-    dN_z = -Q*np.cos(theta)*lever_arm/(math.pi*R*R); # cos(th)
-    return np.array([dN_zth, dN_z])
+def QStresses(Q,R,Theta,lever_arm):
+    dN_th = np.zeros(np.shape(Theta));
+    dN_zth = Q*np.sin(Theta)/(math.pi*R); # sin(th)
+    dN_z = -Q*np.cos(Theta)*lever_arm/(math.pi*R**2); # cos(th)
+    return np.array([dN_th, dN_zth, dN_z])
 
 ## input cylindrical shell geometry
 # - radius "R" (mm)
@@ -65,7 +67,7 @@ def QStresses(Q,R,theta,lever_arm):
 # - thickness "t" (mm)
 
 filename = "Sadowskietal2023-benchmarkgeometries.csv";
-strakeID = 104;
+strakeID = 114;
 # gives list of [H,R,t] values for given strake, in mm
 geom = geometry.findStrakeGeometry(filename, strakeID);
 h = geom[0];
@@ -76,9 +78,9 @@ z0 = geometry.findStrakePositionGlobal(filename, strakeID)[0];
 H = geometry.findStrakePositionGlobal(filename, strakeID)[1];
 
 ## input global loading
-filename = "Sadowskietal2023-benchmarkloads-LC2.csv";
+filename = "Sadowskietal2023-benchmarkloads-LC1.csv";
 
-### pressure loads (N/mm2 = (MPa)) 
+### pressure loads (N/mm2 = (MPa))
 p_r = gl.importLoadMagnitude("p_r",filename);
 p_th = gl.importLoadMagnitude("p_th",filename);
 p_z = gl.importLoadMagnitude("p_z",filename);
@@ -94,85 +96,94 @@ M = gl.importLoadMagnitude("M",filename); # (C around y-axis)
 
 ## cylindrical coordinates r,th,z (radial, circumferential, meridional)
 th_n = 361; sec_angle = 2*math.pi;
-theta = np.linspace(0,sec_angle,th_n);
+# rho = np.linspace(0,R,50);
+# theta = np.linspace(0,sec_angle,th_n);
+# z = np.linspace(z0,h,100);
+Theta, Z = np.meshgrid(np.linspace(0,sec_angle,th_n), np.linspace(z0,h,100),indexing="ij");
+X, Y = R*np.cos(Theta), R*np.sin(Theta); # for plotting only
 
 ## find global internal forces
 ### reaction forces R(th,z*=0) [N/mm]
-R_z = -(P/(sec_angle*R) + p_z*(H-z0))*np.ones(len(theta)); # vertical reaction force
+R_z = -(P/(sec_angle*R) + p_z*(H-z0))*np.ones(np.shape(Theta)); # vertical reaction force
 # R_x = - (Q - p_r*(H-z0)*np.cos(theta)); # p_r cancels over 2pi integral
-R_th = - (Q*np.sin(theta)/(sec_angle*R) + p_th*(H-z0));
-R_r = - (Q*-np.cos(theta)/(sec_angle*R) + p_r*(H-z0)) ;
+R_th = - (Q*np.sin(Theta)/(sec_angle*R) + p_th*(H-z0));
+R_r = - (Q*-np.cos(Theta)/(sec_angle*R) + p_r*(H-z0)) ;
 
-R_T = -(T + p_th*sec_angle*R*R*(H-z0)); # reaction torque [Nmm]
-R_M = -(M + Q*(H-z0)); # reaction moment [Nmm]
+R_T = -(T + p_th*sec_angle*R*R*(H-z0))*np.ones(np.shape(Theta)); # reaction torque [Nmm]
+R_M = -(M + Q*(H-z0))*np.ones(np.shape(Theta)); # reaction moment [Nmm]
 
-### internal forces at z*=H
-titles = ["Axial Force Diagram","Shear Force Diagram","Bending Moment Diagram","Global Torque Diagram","Shear (theta) Force","Shear (radial) Force"]
+### internal forces at z*=h
+titles = ["Shear (radial) Force","Shear (theta) Force","Axial Force Diagram","Bending Moment Diagram","Global Torque Diagram"];
 
-# diagrams = {};
+#### Nz0 i.e. N(z*=0) = -ve reaction forces
+Nz0 = np.array([-R_r,-R_th,-R_z,-R_M,-R_T]); # same order as "titles"
+diagrams = {k : np.zeros(np.shape(Theta)) for k in titles};
 
-# diagrams[titles[0]] = -R_z - (p_z*h); # axial force (N/mm)
-# diagrams[titles[1]] = -R_x - (p_r*h*np.cos(theta)); # shear force (N/mm)
-# diagrams[titles[2]] = -R_M - Q*h; # bending moment (Nmm)
-# diagrams[titles[3]] = -R_T - (p_th*sec_angle*R*R*h); # torque diagram (Nmm)
-# diagrams[titles[4]] = -R_th - (p_th*h); # N/mm
-# diagrams[titles[5]] = -R_r - (p_r*h); # N/mm
+for k,key in enumerate(titles):
+    diagrams[key] = Nz0[k,:,:]; # set z*=0 values correctly
+    # also initialises other values to be edited below
 
-# #### plotted
-# decision = input("Do you want to plot figures? Y/N:  ");
-# if decision == "Y":
-#     # extract the following into separate function file?
-#     nrows = 2;
-#     ncols = 1;
-    
-#     xlabel = "z-coordinate [mm]";
-#     ylabels = ["[N]",
-#                "[N]",
-#                "[Nmm]",
-#                "[Nmm]"]
-    
-    # for i,name in enumerate(titles):
-    #     plotter(i+1,ncols,nrows,
-    #             name,h,xlabel,
-    #             diagrams[name],ylabels[i]);
-        
+#### set z*=(0,h] values correctly
+diagrams[titles[0]] += -p_r*(Z-z0); # radial shear [N/mm]
+diagrams[titles[1]] += -p_th*(Z-z0); # circumferential shear [N/mm]
+diagrams[titles[2]] += -p_z*(Z-z0); # axial force (N/mm)
+diagrams[titles[3]] += -Q*(Z-z0); # bending moment (Nmm)
+diagrams[titles[4]] += -p_th*sec_angle*(R**2)*(Z-z0); # torque (Nmm)
 
-
-## superimpose Ns for INDIVIDUAL STRAKE at z*=h
+## superimpose Ns for INDIVIDUAL STRAKE
 ### from applied loading, N[0] = N_th, N[1] = N_zth, N[2] = N_z
-Nh = np.zeros((3,len(theta))); # initialise
-# Nh += np.asarray(p_rStresses(p_r,R));
-# Nh += np.asarray(p_thStresses(p_th,h));
-# Nh += np.asarray(p_zStresses(p_z,h));
-Nh += np.meshgrid(np.ones(th_n),np.asarray(PStresses(P,R)))[1];
-Nh += np.meshgrid(np.ones(th_n),np.asarray(TStresses(T,R)))[1];
-Nh[2,:] += MStresses(M,R,theta);
-Nh[range(1,3),:] += QStresses(Q,R,theta,0);
+N_components = ["$N_\theta$: Circumferential Membrane Stress Resultant","$N_{z\theta}$: Shear Membrane Stress Resultant","$N_z$: Meridional Membrane Stress Resultant"];
+N = np.zeros(np.shape(Nz0))[0:3,:,:]; # initialise
 
-### boundary functions
-#### Nz0 i.e. N(z*=0) = reaction forces
-Nz0 = np.array([-R_r,-R_th,-R_z]);
+# adding fundamental results at all Z
+N += p_rStresses(p_r, R, Z);
+N += p_thStresses(p_th, Z);
+N += p_zStresses(p_z, Z);
+N += PStresses(P, R, Z);
+N += TStresses(T, R, Theta);
+N += MStresses(M,R,Theta);
+N += QStresses(Q,R,Theta,h-Z);
 
+### boundary functions: know correct results at z*=h
 #### BC1
-f_1 = Nz0[1,:] + p_th*h;
-Nh[1,:] += f_1;
+f_1 = Nz0[1,:,:] + p_th*h; # N_zth(z*=0) + p_th*h
+N[1,:,:] += f_1;
 
 #### BC2
-f_2 = Nz0[2,:] + np.gradient(Nh[1,:],theta)*h/R + p_z*h;
-Nh[2,:] += f_2;
+f_2 = Nz0[2,:,:] + np.gradient(N[1,:,:],Theta[:,-1],axis=0)*h/R + p_z*h;
+N[2,:,:] += f_2;
 
-### plot Ns
-# if decision == "Y":
-#     nrows = 2;
-#     ncols = 1;
-    
-#     ylabel = "[N/mm]";
-    
-#     titles = ["N_th: Circumferential Membrane Stress Resultant",
-#               "N_zth: Shear Membrane Stress Resultant",
-#               "N_z: Meridional Membrane Stress Resultant"];
-    
-#     for i,name in enumerate(titles):
-#         plotter(i+5,ncols,nrows,
-#                 name,z,xlabel,
-#                 N[i]*zshapearray,ylabel);
+# plotting
+
+## plot strake geometry
+fig = plt.figure();
+ax = fig.add_subplot(projection="3d");
+ax.plot_surface(X,Y,Z);
+ax.set_aspect('auto');
+
+ax.set_title("Strake "+str(strakeID)+" Geometry");
+ax.set(xticklabels=[],
+       yticklabels=[],
+       zticklabels=[]);
+ax.annotate("Height "+str(h)+" mm,\nRadius "+str(R)+" mm",(50,200),xycoords="figure points");
+plt.show();
+
+
+## plot global loading "diagrams"
+for k,key in enumerate(titles):
+    fig = plt.figure();
+    ax = fig.add_subplot();
+    ax.plot(Z[0,:],diagrams[key][0,:]);
+
+    ax.set_title(key);
+    plt.show();
+
+
+## plot Ns
+for i in range(3):
+    fig = plt.figure();
+    ax = fig.add_subplot(projection="3d")
+
+    ax.plot_surface(Theta,Z,N[i,:,:],cmap=cm.coolwarm);
+    ax.set_title(N_components[i]);
+    plt.show();
