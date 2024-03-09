@@ -66,39 +66,33 @@ def QStresses(Q,R,Theta,lever_arm):
 # - strake height "h" (mm)
 # - thickness "t" (mm)
 
-filename = "Sadowskietal2023-benchmarkgeometries.csv";
+geoms_filename = "Sadowskietal2023-benchmarkgeometries.csv";
 strakeID = 114;
-# gives list of [H,R,t] values for given strake, in mm
-geom = geometry.findStrakeGeometry(filename, strakeID);
-h = geom[0];
-R = geom[1];
-t = geom[2];
 
-z0 = geometry.findStrakePositionGlobal(filename, strakeID)[0];
-H = geometry.findStrakePositionGlobal(filename, strakeID)[1];
+# gives list of [H,R,t] values for given strake, in mm
+h, R, t = geometry.findStrakeGeometry(geoms_filename, strakeID);
+
+z0, H = geometry.findStrakePositionGlobal(geoms_filename, strakeID);
 
 ## input global loading
-filename = "Sadowskietal2023-benchmarkloads-LC1.csv";
+loads_filename = "Sadowskietal2023-benchmarkloads-LC1.csv";
 
 ### pressure loads (N/mm2 = (MPa))
-p_r = gl.importLoadMagnitude("p_r",filename);
-p_th = gl.importLoadMagnitude("p_th",filename);
-p_z = gl.importLoadMagnitude("p_z",filename);
+p_r = gl.importLoadMagnitude("p_r",loads_filename);
+p_th = gl.importLoadMagnitude("p_th",loads_filename);
+p_z = gl.importLoadMagnitude("p_z",loads_filename);
 
 #### - axial force P (N)
-P = gl.importLoadMagnitude("P",filename); # (+ve z-dir)
+P = gl.importLoadMagnitude("P",loads_filename); # (+ve z-dir)
 #### - transverse shear force Q (N)
-Q = gl.importLoadMagnitude("Q",filename); # (+ve x-dir)
+Q = gl.importLoadMagnitude("Q",loads_filename); # (+ve x-dir)
 #### - uniform torque T (Nmm (= kNm))
-T = gl.importLoadMagnitude("T",filename); # (+ve th-dir)
+T = gl.importLoadMagnitude("T",loads_filename); # (+ve th-dir)
 #### - global bending moment M (Nmm (=kNm))
-M = gl.importLoadMagnitude("M",filename); # (C around y-axis)
+M = gl.importLoadMagnitude("M",loads_filename); # (C around y-axis)
 
 ## cylindrical coordinates r,th,z (radial, circumferential, meridional)
 th_n = 361; sec_angle = 2*math.pi;
-# rho = np.linspace(0,R,50);
-# theta = np.linspace(0,sec_angle,th_n);
-# z = np.linspace(z0,h,100);
 Theta, Z = np.meshgrid(np.linspace(0,sec_angle,th_n), np.linspace(z0,h,100),indexing="ij");
 X, Y = R*np.cos(Theta), R*np.sin(Theta); # for plotting only
 
@@ -135,7 +129,7 @@ diagrams[titles[4]] += -p_th*sec_angle*(R**2)*(Z-z0); # torque (Nmm)
 N_components = ["$N_\theta$: Circumferential Membrane Stress Resultant","$N_{z\theta}$: Shear Membrane Stress Resultant","$N_z$: Meridional Membrane Stress Resultant"];
 N = np.zeros(np.shape(Nz0))[0:3,:,:]; # initialise
 
-# adding fundamental results at all Z
+# adding fundamental results at all Z=[z0,h]
 N += p_rStresses(p_r, R, Z);
 N += p_thStresses(p_th, Z);
 N += p_zStresses(p_z, Z);
@@ -144,14 +138,25 @@ N += TStresses(T, R, Theta);
 N += MStresses(M,R,Theta);
 N += QStresses(Q,R,Theta,h-Z);
 
-### boundary functions: know correct results at z*=h
-#### BC1
-f_1 = Nz0[1,:,:] + p_th*h; # N_zth(z*=0) + p_th*h
-N[1,:,:] += f_1;
+# output values at z*=H
+print("\nmax N_th(z*=h) = "+str(max(N[0,:,-1])));
+print("\nmax N_zth(z*=h) = "+str(max(N[1,:,-1])));
+print("\nmax N_z(z*=h) = "+str(max(N[2,:,-1])));
 
-#### BC2
-f_2 = Nz0[2,:,:] + np.gradient(N[1,:,:],Theta[:,-1],axis=0)*h/R + p_z*h;
-N[2,:,:] += f_2;
+## error between Ns and diagrams
+tol = 1e-3;
+print("Global Equilibrium satisfied?\n");
+### N_z
+absrelerr = abs(P - (np.mean(N[2,:,:])*2*math.pi*R))/abs(P); # base (not th dependent)
+print(absrelerr<=tol);
+absrelerr = abs(M - (np.amax(N[2,:,-1])-np.amin(N[2,:,-1]))*0.5*math.pi*R*R)/abs(M);
+print(absrelerr<=tol);
+### N_zth
+absrelerr = abs(T - (np.mean(N[1,:,:])*sec_angle*R*R))/abs(T);
+print(absrelerr<=tol);
+absrelerr = abs(Q - (np.amax(N[1,:,:])-np.amin(N[1,:,:]))*0.5*math.pi*R)/abs(Q);
+print(absrelerr<=tol);
+
 
 # plotting
 
@@ -172,8 +177,8 @@ plt.show();
 ## plot global loading "diagrams"
 for k,key in enumerate(titles):
     fig = plt.figure();
-    ax = fig.add_subplot();
-    ax.plot(Z[0,:],diagrams[key][0,:]);
+    ax = fig.add_subplot(projection="3d");
+    ax.plot_surface(Theta,Z,diagrams[key]);
 
     ax.set_title(key);
     plt.show();
