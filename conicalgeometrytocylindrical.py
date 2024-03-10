@@ -8,7 +8,8 @@ import math
 import pandas as pd
 
 def averageRadius(d_1,d_2,beta):
-    return 0.25*(d_1+d_2)/math.cos(beta)
+    R = 0.25*(d_1+d_2)/math.cos(beta);
+    return R
 
 
 # returns index & imported file of given strake
@@ -25,7 +26,9 @@ def listStrakeIDs(filename):
     df = pd.read_csv(filename);
     StrakeIDlist = df["ID"];
 
-    return StrakeIDlist
+    H = sum(df["h (mm)"]); # total tower height
+
+    return StrakeIDlist, H
 
 # returns the *cylindrical* geometry of a given strake
 def findStrakeGeometry(filename,strakeID):
@@ -47,4 +50,4 @@ def findStrakePositionGlobal(filename,strakeID):
     H = sum(geoms["h (mm)"]); # total tower height
     z0 = H - sum(geoms["h (mm)"].iloc[range(0,I+1,1)]); # z*=0 in global z-coord
 
-    return [z0,H]
+    return z0

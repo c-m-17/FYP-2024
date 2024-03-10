@@ -5,7 +5,6 @@ Created on Thu Mar  7 12:26:43 2024
 @author: Cerys Morley
 """
 import math
-import conicalgeometrytocylindrical as geometry
 
 # finds elastic critical axial buckling stress
 def calcElasticCriticalAxialBucklingStress(E,C_x,t,r):
@@ -39,11 +38,9 @@ def calcRelativeLength(L,r,t):
 # relative slenderness of shell segment
 def calcRelativeSlenderness(f_yk,sigma):
     # EN 1993-1-6 Equations 9.19, 9.20, 9.21
-    # list in x, theta, xtheta order
-    # sigma must be in the same order & of size (3,)
-    f_y = [f_yk, f_yk, f_yk/math.sqrt(3)];
 
-    lambda_bar = math.sqrt(f_y/sigma);
+    lambda_bar = math.sqrt(f_yk/sigma);
+    # if doing shear stress, input f_yk = f_yk/sqrt(3)
 
     return lambda_bar
 
@@ -57,12 +54,41 @@ def calcBucklingReductionFactor(lambda_bar,lambda_bar0,chi_h,alpha,beta,eta):
         chi = 1 - beta*(((lambda_bar-lambda_bar0)/(lambda_barp-lambda_bar0))**eta); # EN 1993-1-6 9.23
     else:
         chi = alpha/(lambda_bar**2); # EN 1993-1-6 9.24
+
     return chi
+
+# calculate imperfection amplitude
+def calcImperfectionAmplitude(Q_x,r,t):
+    # EN 1993-1-6 D.14
+    dt = math.sqrt(r/t)/Q_x;
+    return dt
+
+# calculate axial elastic imperfection reduction factor
+def calcAlpha_x(dt):
+    # EN 1993-1-6 D.11, D.12, D.13
+    alpha_x = 0.83/(1 + 2.2*(dt**0.75));
+    return alpha_x
+
+# calculate axial plastic range factor
+def calcBeta_x(dt):
+    # EN 1993-1-6 D.15
+    beta_x = 1 - (0.75/(1 + 1.1*dt));
+    return beta_x
 
 # plastic limit relative slenderness
 def calcLambdaBarP(alpha,beta):
     LP = math.sqrt(alpha/(1-beta)); # EN 1993-1-6 9.25
     return LP
+
+# calculate interaction exponent eta_x0
+def calcEta_x0(dt):
+    eta_x0 = 1.35 - 0.1*dt; # EN 1993-1-6 D.16
+    return eta_x0
+
+# calculate plastic (?) interaction exponent eta_xp
+def calcEta_xp(dt):
+    eta_xp = 1/(0.45 + 0.72*dt); # EN 1993-1-6 D.17
+    return eta_xp
 
 # interaction exponent
 def calcEta(lambda_bar,lambda_bar0,lambda_barp,eta_0,eta_p):
@@ -72,19 +98,21 @@ def calcEta(lambda_bar,lambda_bar0,lambda_barp,eta_0,eta_p):
 
 # characteristic & design buckling stresses
 def calcDesignBucklingStress(chi,f_yk,gamma_M1):
-
-    f_y = [f_yk, f_yk, f_yk/math.sqrt(3)];
-
-    sigma_Rk = chi*f_y; # EN 1993-1-6 9.27, 9.28, 9.29
+    # if doing shear stress, input f_yk = f_yk/sqrt(3)
+    sigma_Rk = chi*f_yk; # EN 1993-1-6 9.27, 9.28, 9.29
 
     sigma_Rd = sigma_Rk/gamma_M1; # EN 1993-1-6 9.30, 9.31, 9.32
+
     return sigma_Rd
 
 # check individual components do not exceed design values
 def checkIndividualStresses(sigma_Ed,sigma_Rd):
-    # gives binary true/false:
+    # gives binary true/false: "Does it exceed buckling stress?"
     check = sigma_Ed <= sigma_Rd # EN 1993-1-6 9.33, 9.34, 9.35
-    return check
+
+    utilisation = sigma_Ed*100/sigma_Rd; # percentage
+
+    return check, utilisation
 
 # check interactions between stress components
 def checkStressInteractions(sigma_Ed,sigma_Rd,k_i,alpha_i):
@@ -114,26 +142,42 @@ def calck_iAndalpha_i(chi):
     return k_i, alpha_i
 
 # check that strake doesn't buckle
-filename = "Sadowskietal2023-benchmarkgeometries.csv";
-strakeID = 112;
+# constants
+f_yk = 355; # characteristic steel strength [N/mm2]
+gamma_M1 = 1.1; # EN 1993-1-6 Table 4.2
+E = 210e3; # Young's Modulus [N/mm2]
 
-f_yk = 275; # characteristic steel strength [N/mm2]
-E = 210e9; # Young's Modulus [N/mm2]
-
-L, r, t = geometry.findStrakeGeometry(filename, strakeID);
-
-omega = calcRelativeLength(L, r, t);
-C_x = calcC_x(omega, r, t);
-
-# add if under axial compression statement here?
-sigma_xRcr = calcElasticCriticalAxialBucklingStress(E, C_x, t, r);
-sigma_thRcr = 0; # expand? not necessary atm.
-tau_xthRcr = 0; # expand?
-sigma = [sigma_xRcr, sigma_thRcr, tau_xthRcr];
-
-lambda_bar = calcRelativeSlenderness(f_yk, sigma);
+Q_x = {"Class A":40, "Class B":25, "Class C": 16}; # EN 1993-1-6 Table D.1
+chi_xh = 1.10; # EN 1993-1-6 D.19
+lambda_x0 = 0.10; # EN 1993-1-6 D.10
 
 
-lambda_barp = calcLambdaBarP(alpha, beta);
-eta = calcEta(lambda_bar, lambda_bar0, lambda_barp, eta_0, eta_p);
-chi = calcBucklingReductionFactor(lambda_bar, lambda_bar0, chi_h, alpha, beta, eta);
+# # geometry import
+# filename = "Sadowskietal2023-benchmarkgeometries.csv";
+# strakeID = 107;
+# L, r, t = geometry.findStrakeGeometry(filename, strakeID);
+
+def checkAxialBuckling(E,f_yk,Q_x,lambda_x0,chi_xh,L,r,t):
+    omega = calcRelativeLength(L, r, t);
+
+    C_x = calcC_x(omega, r, t);
+    sigma_xRcr = calcElasticCriticalAxialBucklingStress(E, C_x, t, r);
+
+    lambda_bar = calcRelativeSlenderness(f_yk, sigma_xRcr);
+
+    dt = calcImperfectionAmplitude(Q_x["Class A"], r, t);
+    alpha = calcAlpha_x(dt);
+    beta = calcBeta_x(dt);
+
+    eta_x0 = calcEta_x0(dt);
+    eta_xp = calcEta_xp(dt);
+    lambda_barp = calcLambdaBarP(alpha, beta);
+
+    eta = calcEta(lambda_bar, lambda_x0, lambda_barp, eta_x0, eta_xp);
+    chi = calcBucklingReductionFactor(lambda_bar, lambda_x0, chi_xh, alpha, beta, eta);
+
+    sigma_xRd = calcDesignBucklingStress(chi, f_yk, gamma_M1);
+
+    check, utilisation = checkIndividualStresses(sigma_xRcr, sigma_xRd);
+
+    return check, utilisation
