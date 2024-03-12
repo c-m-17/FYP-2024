@@ -12,6 +12,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 from matplotlib import cm
+import matplotlib.colors as mcolors
 
 import conicalgeometrytocylindrical as geometry
 import globalloads as gl
@@ -52,8 +53,31 @@ strakeList, H = geometry.listStrakeIDs(geoms_filename);
 titles = ["Shear (radial) Force","Shear (theta) Force","Axial Force Diagram","Bending Moment Diagram","Global Torque Diagram"];
 N_components = ["$N_{\theta}$: Circumferential Membrane Stress Resultant","$N_{z\theta}$: Shear Membrane Stress Resultant","$N_z$: Meridional Membrane Stress Resultant"];
 
-tower_fig = plt.figure(1);
-decision = input("Plot figures? Y/N ");
+tower_fig = plt.figure();
+
+N_zth_fig = plt.figure();
+ax1 = N_zth_fig.add_subplot(projection="3d");
+ax1.set_aspect("auto");
+ax1.set_title(N_components[1]);
+
+N_z_fig = plt.figure();
+ax2 = N_z_fig.add_subplot(projection="3d");
+ax2.set_aspect("auto");
+ax2.set_title(N_components[2]);
+
+util_fig = plt.figure()
+ax3 = util_fig.add_subplot(projection="3d");
+ax3.set_aspect("auto");
+ax3.set_title("Utilisation Diagram");
+
+# decision = input("Plot figures? Y/N ");
+
+tol = 1e-3;
+
+check = dict.fromkeys(strakeList);
+utilisation = dict.fromkeys(strakeList);
+error = {ID:{"N_zth baseline":[],"N_zth variation":[],"N_z baseline":[],"N_z variation":[]} for k,ID in enumerate(strakeList)};
+sigma_xRd = [];
 
 ## loop over all strakes
 for i,strakeID in enumerate(strakeList):
@@ -65,7 +89,7 @@ for i,strakeID in enumerate(strakeList):
     z0 = geometry.findStrakePositionGlobal(geoms_filename, strakeID);
 
     ## LOCAL cylindrical coordinates r,th,z (radial, circumferential, meridional)
-    Theta, Z = np.meshgrid(np.linspace(0,sec_angle,th_n), np.linspace(z0,h,100),indexing="ij");
+    Theta, Z = np.meshgrid(np.linspace(0,sec_angle,th_n), np.linspace(z0,z0+h,100),indexing="ij");
     X, Y = R*np.cos(Theta), R*np.sin(Theta); # for plotting only
 
     ## find global internal forces
@@ -106,74 +130,64 @@ for i,strakeID in enumerate(strakeList):
     N += fsr.PStresses(P, R, Z);
     N += fsr.TStresses(T, R, Theta);
     N += fsr.MStresses(M,R,Theta);
-    N += fsr.QStresses(Q,R,Theta,h-Z);
+    N += fsr.QStresses(Q,R,Theta,z0+h-Z);
+
+    # boundary functions
+
 
     # output values at z*=H
-    print("\nmax N_th(z*=h) = "+str(max(N[0,:,-1])));
-    print("\nmax N_zth(z*=h) = "+str(max(N[1,:,-1])));
-    print("\nmax N_z(z*=h) = "+str(max(N[2,:,-1])));
+    print("max N_th(z*=h) = "+str(max(N[0,:,-1])));
+    print("max N_zth(z*=h) = "+str(max(N[1,:,-1])));
+    print("max N_z(z*=h) = "+str(max(N[2,:,-1])));
 
     ## error between Ns and diagrams
-    tol = 1e-3;
-    print("Global Equilibrium satisfied?\n");
     ### N_z
-    absrelerr = abs(P - (np.mean(N[2,:,:])*2*math.pi*R))/abs(P); # base (not th dependent)
-    print("Error for N_z baseline = " + str(absrelerr));
-    print(absrelerr<=tol);
-    absrelerr = abs(M - (np.amax(N[2,:,-1])-np.amin(N[2,:,-1]))*0.5*math.pi*R*R)/abs(M);
-    print("Error for N_z variation = " + str(absrelerr));
-    print(absrelerr<=tol);
+    error[strakeID]["N_z baseline"].append(abs(P - ((np.amax(N[2,:,:])+np.amin(N[2,:,:]))/2)*2*math.pi*R)/abs(P)); # base (not th dependent)
+    error[strakeID]["N_z variation"].append(abs(abs(M) - (np.amax(N[2,:,-1])-np.amin(N[2,:,-1]))*0.5*math.pi*R*R)/abs(M));
     ### N_zth
-    absrelerr = abs(T - (np.mean(N[1,:,:])*sec_angle*R*R))/abs(T);
-    print("Error for N_zth baseline = " + str(absrelerr));
-    print(absrelerr<=tol);
-    absrelerr = abs(Q - (np.amax(N[1,:,:])-np.amin(N[1,:,:]))*0.5*math.pi*R)/abs(Q);
-    print("Error for N_zth variation = " + str(absrelerr));
-    print(absrelerr<=tol);
-
+    error[strakeID]["N_zth baseline"].append(abs(T - ((np.amax(N[1,:,:])+np.amin(N[1,:,:]))/2)*sec_angle*R*R)/abs(T));
+    error[strakeID]["N_zth variation"].append(abs(Q - (np.amax(N[1,:,:])-np.amin(N[1,:,:]))*0.5*math.pi*R)/abs(Q));
+    tolcheck = 0;
+    for k in error[strakeID].keys():
+        tolcheck += sum(error[strakeID][k]);
+    if tolcheck <= tol:
+        print("Global Equilibrium satisfied.");
+    else:
+        print("Global equilibrium not satisfied for strake "+str(strakeID));
     # plotting
 
     ## plot strake geometry
-    ax = tower_fig.add_subplot(projection="3d");
-    ax.plot_surface(X,Y,Z);
-    ax.set_aspect('auto');
+    # ax = tower_fig.add_subplot(projection="3d");
+    # ax.plot_surface(X,Y,Z);
+    # ax.set_aspect('auto');
 
-    ax.set(xticklabels=[],
-           yticklabels=[]);
-    # ax.annotate("Height "+str(h)+" mm,\nRadius "+str(R)+" mm",(50,200),xycoords="figure points");
-    plt.show();
+    # ax.set(xticklabels=[],
+    #        yticklabels=[]);
+    # # ax.annotate("Height "+str(h)+" mm,\nRadius "+str(R)+" mm",(50,200),xycoords="figure points");
+    # plt.show();
 
-    if decision == "Y":
-        # plot global loading "diagrams"
-        for k,key in enumerate(titles):
-            fig = plt.figure();
-            ax = fig.add_subplot(projection="3d");
-            ax.plot_surface(Theta,Z,diagrams[key]);
+    # # plot global loading "diagrams"
+    # for k,key in enumerate(titles):
+    #     fig = plt.figure(num=k+2);
+    #     ax = fig.add_subplot(projection="3d");
+    #     ax.plot_surface(Theta,Z,diagrams[key]);
 
-            ax.set_title(key+", strake "+str(strakeID));
-            plt.show();
+    #     # ax.set_title(key+", strake "+str(strakeID));
+    # plt.show();
 
-        # plot Ns
-        for i in range(3):
-            fig = plt.figure();
-            ax = fig.add_subplot(projection="3d")
+    # plot Ns
+    # normalized colour distributions
+    N_zth_cols = cm.jet(N[1,:,:]/(2*np.amax(abs(N[1,:,:]))) + 0.5);
+    N_z_cols = cm.jet(N[2,:,:]/(2*np.amax(abs(N[2,:,:]))) + 0.5);
 
-            ax.plot_surface(Theta,Z,N[i,:,:],cmap=cm.coolwarm);
-            ax.set_title(N_components[i]+", strake "+str(strakeID));
-
-            ax.annotate("Max: "+str(np.amax(N[i,:,:]))+" N/mm\nMin: "+str(np.amin(N[i,:,:]))+" N/mm",(50,200),xycoords="figure points");
-            plt.show();
-
-        # fig = plt.figure();
-        # ax = fig.add_subplot(projection="3d")
-
-        # ax.plot_surface(Theta,Z,N[2,:,:],cmap=cm.coolwarm);
-        # ax.set_title(N_components[2]+", Strake "+str(strakeID));
-
-        # ax.annotate("Max: "+str(np.amax(N[2,:,:]))+" N/mm\nMin: "+str(np.amin(N[2,:,:]))+" N/mm",(50,200),xycoords="figure points");
-        # plt.show();
+    ax1.plot_surface(X,Y,Z,facecolors=N_zth_cols,rstride=1, cstride=1);
+    ax2.plot_surface(X,Y,Z,facecolors=N_z_cols,rstride=1, cstride=1);
 
     # buckling check LS3
-    check, utilisation = LS3.checkAxialBuckling(E, f_yk, Q_x, lambda_x0, chi_xh, h, R, t);
-    print("Axial buckling OK? "+str(check));
-    print("Utilisation = "+str(utilisation)+" %\n");
+    sigma_xRd.append(LS3.findAxialBucklingStress(E, f_yk, Q_x, lambda_x0, chi_xh, h, R, t));
+    check[strakeID], utilisation[strakeID] = LS3.checkIndividualStresses(abs(np.amin(N[2,:,:])), sigma_xRd[i]*t);
+    print("Axial buckling OK? "+str(check[strakeID]));
+    print("Utilisation = "+str(utilisation[strakeID])+" %\n");
+
+# ax3.plot_surface(X,Y,Z,norm=colors.Normalize(vmin=utilisation.min(), vmax=utilisation.max()));
+# ax3.set_aspect('auto');

@@ -7,7 +7,7 @@ Created on Thu Mar  7 12:26:43 2024
 import math
 
 # finds elastic critical axial buckling stress
-def calcElasticCriticalAxialBucklingStress(E,C_x,t,r):
+def calcElasticCriticalAxialBucklingStress(E,C_x,r,t):
     # EN 1993-1-6 D.6
     sigma = 0.605*E*C_x*t/r;
     return sigma
@@ -106,11 +106,11 @@ def calcDesignBucklingStress(chi,f_yk,gamma_M1):
     return sigma_Rd
 
 # check individual components do not exceed design values
-def checkIndividualStresses(sigma_Ed,sigma_Rd):
+def checkIndividualStresses(N_Ed,N_Rd):
     # gives binary true/false: "Does it exceed buckling stress?"
-    check = sigma_Ed <= sigma_Rd # EN 1993-1-6 9.33, 9.34, 9.35
+    check = N_Ed <= N_Rd # EN 1993-1-6 9.33, 9.34, 9.35
 
-    utilisation = sigma_Ed*100/sigma_Rd; # percentage
+    utilisation = N_Ed*100/N_Rd; # percentage
 
     return check, utilisation
 
@@ -157,11 +157,11 @@ lambda_x0 = 0.10; # EN 1993-1-6 D.10
 # strakeID = 107;
 # L, r, t = geometry.findStrakeGeometry(filename, strakeID);
 
-def checkAxialBuckling(E,f_yk,Q_x,lambda_x0,chi_xh,L,r,t):
+def findAxialBucklingStress(E,f_yk,Q_x,lambda_x0,chi_xh,L,r,t):
     omega = calcRelativeLength(L, r, t);
 
     C_x = calcC_x(omega, r, t);
-    sigma_xRcr = calcElasticCriticalAxialBucklingStress(E, C_x, t, r);
+    sigma_xRcr = calcElasticCriticalAxialBucklingStress(E, C_x,r,t);
 
     lambda_bar = calcRelativeSlenderness(f_yk, sigma_xRcr);
 
@@ -178,6 +178,4 @@ def checkAxialBuckling(E,f_yk,Q_x,lambda_x0,chi_xh,L,r,t):
 
     sigma_xRd = calcDesignBucklingStress(chi, f_yk, gamma_M1);
 
-    check, utilisation = checkIndividualStresses(sigma_xRcr, sigma_xRd);
-
-    return check, utilisation
+    return sigma_xRd
