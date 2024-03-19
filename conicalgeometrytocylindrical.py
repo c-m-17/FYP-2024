@@ -7,10 +7,9 @@ Created on Thu Feb 22 13:16:51 2024
 import math
 import pandas as pd
 
-def averageRadius(d_1,d_2,beta):
-    R = 0.25*(d_1+d_2)/math.cos(beta);
+def averageRadius(d_1,d_2):
+    R = 0.25*(d_1+d_2);
     return R
-
 
 # returns index & imported file of given strake
 def findStrakeIndex(filename,strakeID):
@@ -27,8 +26,12 @@ def listStrakeIDs(filename):
     StrakeIDlist = df["ID"];
 
     H = sum(df["h (mm)"]); # total tower height
+    V = 0;
+    for i, ID in enumerate(StrakeIDlist):
+        h, R, t = findStrakeGeometry(filename, ID);
+        V += h*t*2*math.pi*R; # tower volume
 
-    return StrakeIDlist, H
+    return StrakeIDlist, H, V
 
 # returns the *cylindrical* geometry of a given strake
 def findStrakeGeometry(filename,strakeID):
@@ -40,7 +43,7 @@ def findStrakeGeometry(filename,strakeID):
     d_2 = geoms['d2 (bottom) (mm)'].iloc[I];
     t = geoms['t (mm)'].iloc[I];
 
-    R = averageRadius(d_1, d_2, beta);
+    R = averageRadius(d_1, d_2);
     return [h,R,t]
 
 # returns the global z-coordinate of the given strake's bottom boundary
