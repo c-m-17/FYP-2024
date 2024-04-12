@@ -10,8 +10,8 @@ import pandas as pd
 
 def importLoadMagnitude(loadtype,filename):
     
-    loads = pd.read_csv(filename);
+    loads = pd.read_csv(filename)
     # loadtype is string
-    A = loads["Magnitude"].loc[loads["Load"] == loadtype];
+    A = loads["Magnitude"].loc[loads["Load"] == loadtype]
     
     return A.unique()[0]
