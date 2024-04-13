@@ -7,19 +7,19 @@ Created on Thu Mar  7 12:26:43 2024
 import math
 
 # finds elastic critical axial buckling stress
-def calcElasticCriticalAxialBucklingStress(E,C_x,r,t):
+def calcElasticCriticalAxialBucklingStress(E: float,C_x: float,r: float,t: float):
     # EN 1993-1-6 D.6
     sigma_xRcr = 0.605*E*C_x*t/r
     return sigma_xRcr
 
 # find elastic critical shear buckling stress
-def calcElasticCriticalShearBucklingStress(E,C_tau,omega,r,t):
+def calcElasticCriticalShearBucklingStress(E: float,C_tau: float,omega: float,r: float,t: float):
     # EN 1993-1-6 D.40
     tau_xthRcr = 0.75*E*C_tau*math.sqrt(1/omega)*t/r
     return tau_xthRcr
 
 # find critical buckling factor C_x
-def calcC_x(omega,r,t):
+def calcC_x(omega: float,r: float,t: float):
 
     if omega < 1.7: # EN 1993-1-6 D.3
         # short length
@@ -36,7 +36,7 @@ def calcC_x(omega,r,t):
     return C_x
 
 # find critical buckling factor C_tau
-def calcC_tau(omega,r,t):
+def calcC_tau(omega: float,r: float,t: float):
 
     if omega < 10: # EN 1993-1-6 D.37
         # short cylinder
@@ -59,26 +59,26 @@ def calcC_tau(omega,r,t):
     return C_tau
 
 # relative length of shell segment
-def calcRelativeLength(L,r,t):
+def calcRelativeLength(L:float,r: float,t: float):
     # EN 1993-1-6 Equation D.1
     omega = L/math.sqrt(r*t)
     return omega
 
 # check if axial buckling even needs to be checked
-def initialAxialBucklingCheck(E,C_x,f_yk,r,t):
+def initialAxialBucklingCheck(E: float,C_x: float,f_yk: float,r:float,t:float):
     # EN 1993-1-6 D.9
     check = r/t <= C_x*E/(165*f_yk)
     # if true, axial buckling does not need to be checked
     return check
 
 # check if shear buckling evens needs to be checked
-def initialShearBucklingCheck(E,f_yk,r,t):
+def initialShearBucklingCheck(E: float,f_yk: float,r: float,t: float):
     # EN 1993-1-6 D.54
     check = r/t <= 0.17*((E/f_yk)**0.67)
     return check
 
 # relative slenderness of shell segment
-def calcRelativeSlenderness(f_yk,sigma):
+def calcRelativeSlenderness(f_yk: float,sigma: float):
     # EN 1993-1-6 9.19, 9.20, 9.21
     lambda_bar = math.sqrt(f_yk/sigma)
     # if doing shear stress, input f_yk = f_yk/sqrt(3)
@@ -86,7 +86,7 @@ def calcRelativeSlenderness(f_yk,sigma):
     return lambda_bar
 
 # elastic-plastic buckling reduction factor
-def calcBucklingReductionFactor(lambda_bar,lambda_bar0,chi_h,alpha,beta,eta):
+def calcBucklingReductionFactor(lambda_bar: float,lambda_bar0: float,chi_h: float,alpha: float,beta: float,eta: float):
     lambda_barp = calcLambdaBarP(alpha, beta)
 
     if lambda_bar <= lambda_bar0:
@@ -99,53 +99,53 @@ def calcBucklingReductionFactor(lambda_bar,lambda_bar0,chi_h,alpha,beta,eta):
     return chi
 
 # calculate imperfection amplitude
-def calcImperfectionAmplitude(Q,r,t):
+def calcImperfectionAmplitude(Q: float,r: float,t: float):
     # EN 1993-1-6 D.14, D.49
     dt = math.sqrt(r/t)/Q
     # works for axial & shear
     return dt
 
 # calculate axial elastic imperfection reduction factor
-def calcAlpha_x(dt):
+def calcAlpha_x(dt: float):
     # EN 1993-1-6 D.11, D.12, D.13
     alpha_x = 0.83/(1 + 2.2*(dt**0.75))
     return alpha_x
 
 # calculate shear elastic imperfection reduction factor
-def calcAlpha_tau(dt):
+def calcAlpha_tau(dt: float):
     # EN 1993-1-6 D.47, D.48
     alpha_tau = 0.96/(1 + 0.5*dt)
     return alpha_tau
 
 # calculate axial plastic range factor
-def calcBeta_x(dt):
+def calcBeta_x(dt: float):
     # EN 1993-1-6 D.15
     beta_x = 1 - (0.75/(1 + 1.1*dt))
     return beta_x
 
 # plastic limit relative slenderness
-def calcLambdaBarP(alpha,beta):
+def calcLambdaBarP(alpha: float,beta: float):
     LP = math.sqrt(alpha/(1-beta)) # EN 1993-1-6 9.25
     return LP
 
 # calculate interaction exponent eta_x0
-def calcEta_x0(dt):
+def calcEta_x0(dt: float):
     eta_x0 = 1.35 - 0.1*dt # EN 1993-1-6 D.16
     return eta_x0
 
 # calculate plastic (?) interaction exponent eta_xp
-def calcEta_xp(dt):
+def calcEta_xp(dt: float):
     eta_xp = 1/(0.45 + 0.72*dt) # EN 1993-1-6 D.17
     return eta_xp
 
 # interaction exponent
-def calcEta(lambda_bar,lambda_bar0,lambda_barp,eta_0,eta_p):
+def calcEta(lambda_bar: float,lambda_bar0: float,lambda_barp: float,eta_0: float,eta_p: float):
     # EN 1993-1-6 9.26
     eta = ( (lambda_bar*(eta_p - eta_0)) + (lambda_barp*eta_0) - (lambda_bar0*eta_p) )/(lambda_barp-lambda_bar0)
     return eta
 
 # characteristic & design buckling stresses
-def calcDesignBucklingStress(chi,f_yk,gamma_M1):
+def calcDesignBucklingStress(chi: float,f_yk: float,gamma_M1: float):
     # if doing shear stress, input f_yk = f_yk/sqrt(3)
     sigma_Rk = chi*f_yk # EN 1993-1-6 9.27, 9.28, 9.29
 
@@ -163,7 +163,8 @@ def checkIndividualStresses(N_Ed,N_Rd):
     return check, utilisation
 
 # check interactions between stress components
-def checkStressInteractions(sigma_Ed,sigma_Rd,k_i,alpha_i):
+def checkStressInteractions(sigma_Ed: list[float],sigma_Rd: list[float],chi: list[float]):
+    k_i, alpha_i = calck_iAndalpha_i(chi)
     # EN 1993-1-6 9.5.3 (4)
     if sigma_Ed[0] < 0:
         # if sigma_x,Ed is tensile
@@ -178,7 +179,7 @@ def checkStressInteractions(sigma_Ed,sigma_Rd,k_i,alpha_i):
     return check
 
 # buckling interaction parameters
-def calck_iAndalpha_i(chi):
+def calck_iAndalpha_i(chi: list[float]):
     # chi is list of size (3,) x, th, xth order
     k_i = []
     k_i.append(1.0 + chi[0]**2) # EN 1993-1-6 9.37
@@ -189,7 +190,7 @@ def calck_iAndalpha_i(chi):
 
     return k_i, alpha_i
 
-def findAxialBucklingStress(E,f_yk,Q_x_val,lambda_x0,chi_xh,L,r,t,gamma_M1):
+def findAxialBucklingStress(E: float,f_yk: float,Q_x_val: float,lambda_x0: float,chi_xh: float,L: float,r: float,t: float,gamma_M1: float):
     omega = calcRelativeLength(L, r, t)
 
     C_x = calcC_x(omega, r, t)
@@ -214,9 +215,9 @@ def findAxialBucklingStress(E,f_yk,Q_x_val,lambda_x0,chi_xh,L,r,t,gamma_M1):
 
     sigma_xRd = calcDesignBucklingStress(chi, f_yk, gamma_M1)
 
-    return sigma_xRd
+    return sigma_xRd, chi
 
-def findShearBucklingStress(E,f_yk,Q_tau_val,lambda_tau0,chi_tauh,beta_tau,eta_tau,L,r,t,gamma_M1):
+def findShearBucklingStress(E: float,f_yk: float,Q_tau_val: float,lambda_tau0: float,chi_tauh: float,beta_tau: float,eta_tau:float,L:float,r:float,t:float,gamma_M1:float):
     omega = calcRelativeLength(L, r, t)
 
     C_tau = calcC_tau(omega, r, t)
@@ -234,7 +235,7 @@ def findShearBucklingStress(E,f_yk,Q_tau_val,lambda_tau0,chi_tauh,beta_tau,eta_t
 
     tau_xthRd = calcDesignBucklingStress(chi, f_yk/math.sqrt(3), gamma_M1)
 
-    return tau_xthRd
+    return tau_xthRd, chi
 
 # if running this file directly
 if __name__ == "__main__":

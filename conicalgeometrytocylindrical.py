@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Feb 22 13:16:51 2024
+Extracts geometry of strakes in tower.
 
 @author: Cerys Morley
 """
 import math
 import pandas as pd
 
-def averageRadius(d_1,d_2):
+def averageRadius(d_1: float, d_2: float):
+    """Calculates average strake radius."""
     R = 0.25*(d_1+d_2)
     return R
 
 # returns index & imported file of given strake
-def findStrakeIndex(filename,strakeID):
+def findStrakeIndex(filename: str, strakeID: int):
+    """Finds index of strake within dataframe."""
     geoms = pd.read_csv(filename)
     I = geoms.loc[geoms["ID"] == strakeID].index.tolist()[0]
     return geoms, I
@@ -21,7 +23,8 @@ def findStrakeIndex(filename,strakeID):
 #     return h/math.cos(beta)
 
 # returns list of strakeIDs from import file
-def listStrakeIDs(filename):
+def listStrakeIDs(filename: str):
+    "Creates pandas series of strake IDs"
     df = pd.read_csv(filename)
     StrakeIDlist = df["ID"]
 
@@ -34,7 +37,8 @@ def listStrakeIDs(filename):
     return StrakeIDlist, H, V
 
 # returns the *cylindrical* geometry of a given strake
-def findStrakeGeometry(filename,strakeID):
+def findStrakeGeometry(filename: str, strakeID: int):
+    """Finds geometry of a strake."""
     geoms, I = findStrakeIndex(filename, strakeID)
 
     h = geoms['h (mm)'].iloc[I]
@@ -47,7 +51,8 @@ def findStrakeGeometry(filename,strakeID):
     return [h,R,t]
 
 # returns the global z-coordinate of the given strake's bottom boundary
-def findStrakePositionGlobal(filename,strakeID):
+def findStrakePositionGlobal(filename: str, strakeID: int):
+    """Finds global z-coordinate of strake base"""
     geoms, I = findStrakeIndex(filename, strakeID)
 
     H = sum(geoms["h (mm)"]) # total tower height

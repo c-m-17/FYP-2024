@@ -1,17 +1,18 @@
-# -*- coding: utf-8 -*-
 """
-Created on Mon Feb 26 15:20:40 2024
+To import constant load values into a dictionary.
 
 @author: Cerys Morley
 """
-# NOTE: this function can only handle constant load values!!!
-
 import pandas as pd
 
-def importLoadMagnitude(loadtype,filename):
+def importLoadMagnitude(loadtype: str, filename: str):
     
     loads = pd.read_csv(filename)
     # loadtype is string
     A = loads["Magnitude"].loc[loads["Load"] == loadtype]
     
     return A.unique()[0]
+
+def allLoads(loads_filename: str, keys: list[str]):
+    loads = {key : importLoadMagnitude(key,loads_filename) for k, key in enumerate(keys)}
+    return loads
