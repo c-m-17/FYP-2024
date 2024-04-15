@@ -10,6 +10,8 @@ This script optmises the thicknesses in a tower.
 
 import math
 import numpy as np
+from datetime import datetime
+import matplotlib.pyplot as plt
 
 import strake
 import error
@@ -21,9 +23,7 @@ import LS3bucklingcheck as LS3
 # user inputs
 
 geoms_filename = "Sadowskietal2023-benchmarkgeometries.csv"
-loads_filename = "Sadowskietal2023-benchmarkloads-LC1.csv"
-th_n = 361
-arcLength = 2*math.pi
+loads_filename = "Sadowskietal2023-benchmarkloads-LC2.csv"
 
 # constants
 f_yk = 345 # characteristic steel strength [N/mm2]
@@ -51,7 +51,7 @@ fab_class = "Class A"
 # loading
 
 loadNames = ["p_r", "p_th", "p_z", "P", "Q", "T", "M"]
-loads = gl.allLoads(loads_filename,loadNames)
+loadinput = gl.allLoads(loads_filename,loadNames)
 
 # geometry
 
@@ -60,74 +60,70 @@ strakeList, H, V = geometry.listStrakeIDs(geoms_filename)
 strakes = {strakeID : strake.strake(strakeID,geoms_filename) for i, strakeID in enumerate(strakeList)}
 
 # set up loop
-theta = np.linspace(0,arcLength,th_n)
-for key in strakes.keys():
-    equilibriumCheck = {key : None}
-    sigma_xRd = {key : None}
-    tau_xthRd = {key : None}
+theta = np.linspace(0,2*math.pi,361)
+sigma_xRd = {key : None for key in strakes.keys()}
+tau_xthRd = {key : None for key in strakes.keys()}
 
-    sigma_xEd = {key : None}
-    tau_xthEd = {key : None}
+sigma_xEd = {key : None for key in strakes.keys()}
+tau_xthEd = {key : None for key in strakes.keys()}
 
-    results = {key: {"Global equilibrium": None,
-                     "Axial check": None,
-                     "Shear check": None,
-                     "Interaction check": None,
-                     "Axial utilisation": None,
-                     "Shear utilisation": None}}
+# {strakeID : {checktype : list[boolean, values]}}
+checks = {key: {"Axial check": [None]*2,
+                "Shear check": [None]*2,
+                "Interaction check": [None]*2} for key in strakes.keys()}
 
+# {strakeID : [{loadtype : boolean}, {loadtype : error}]}
+errors = {key: [None]*2 for key in strakes.keys()}
+
+loads = loadinput.copy()
 # loop over strakes
 for strakeID, s in strakes.items():
     z = np.linspace(0,s.h,100)
     Theta, Z = np.meshgrid(theta,z,indexing="ij")
+ 
+    selfWeight = np.array(fsr.p_zStresses(rho*g*s.t,s.h,Z)) # selfweight as p_z
 
     # stresses
-    N = fsr.cumulativeStresses(loads,Z,Theta,s,H)
+    N = fsr.cumulativeStresses(loads,Z,Theta,s)
+    N += selfWeight
+
     sigma_xEd[strakeID] = np.amin(N[2,:,:])/s.t
     tau_xthEd[strakeID] = np.amin(N[1,:,:])/s.t
 
     # error calculations
-    results[strakeID]["Global equilibrium"] = error.calculateStressErrors(N,loads,s.r,tol)
+    errors[strakeID] = error.calculateStressErrors(N,loads,s.r,tol)
 
     # LS3 buckling checks
     # axial
     sigma_xRd[strakeID], chi_x = LS3.findAxialBucklingStress(E, f_yk, Q_x[fab_class], lambda_x0, chi_xh, s.h, s.r, s.t, gamma_M1)
-    results[strakeID]["Axial check"], results[strakeID]["Axial utilisation"] = LS3.checkIndividualStresses(sigma_xEd[strakeID], sigma_xRd[strakeID])
+    checks[strakeID]["Axial check"] = LS3.checkIndividualStresses(sigma_xEd[strakeID], sigma_xRd[strakeID])
 
     # shear
     tau_xthRd[strakeID], chi_tau = LS3.findShearBucklingStress(E, f_yk, Q_tau[fab_class], lambda_tau0, chi_tauh, beta_tau, eta_tau, s.h, s.r, s.t, gamma_M1)
-    results[strakeID]["Shear check"], results[strakeID]["Shear utilisation"] = LS3.checkIndividualStresses(tau_xthEd[strakeID], tau_xthRd[strakeID])
+    checks[strakeID]["Shear check"] = LS3.checkIndividualStresses(tau_xthEd[strakeID], tau_xthRd[strakeID])
 
     # interactions
-    results[strakeID]["Interaction check"] = LS3.checkStressInteractions([sigma_xEd[strakeID], 0, tau_xthEd[strakeID]],
+    checks[strakeID]["Interaction check"] = LS3.checkStressInteractions([sigma_xEd[strakeID], 0, tau_xthEd[strakeID]],
                                                                          [sigma_xRd[strakeID],100,tau_xthRd[strakeID]],
                                                                          [chi_x, 0, chi_tau])
     
-# results output
+    loads["P"] += np.sum(selfWeight) # adds self weight of can to next cans loading
+    loads["M"] += loads["Q"]*s.h # adds moment for current strake to new baseline for next strake
+
+# checks output
+
+f = open(loads_filename.split(".")[0]+"-checks-"+datetime.now().strftime("%y%m%d%H%M%S")+".txt","x")
 for key in strakes.keys():
-    print(key)
+    f.write("\n"+str(key)+"\n")
     # if all resultants are within tolerance
-    if sum(results[key]["Global equilibrium"][load] for l,load in enumerate(loadNames[3:-1])) == 4:
-        print("Global equilibrium satisified.")
+    if sum(errors[key][0].values()) == len(errors[key][0].keys()):
+        f.write("Global equilibrium satisified.\n")
     else:
-        print("Global equilibrium violated.")
-        print(results[key]["Global Equilibrium"])
+        f.write("Global equilibrium violated.\n")
     
-    if results[key]["Axial check"]:
-        print("Axial check passed.")
-    else:
-        print("Failed axial check.")
+    f.write(str(errors[key][1])+"\n") # print error values
     
-    print(results[key]["Axial utilisation"])
+    for check in checks[key].keys():
+        error.printBoolCheck(f,check,checks[key][check][0],checks[key][check][1])
 
-    if results[key]["Shear check"]:
-        print("Shear check passed.")
-    else:
-        print("Failed shear check.")
-
-    print(results[key]["Shear utilisation"])
-
-    if results[key]["Interaction check"]:
-        print("Interaction check passed.")
-    else:
-        print("Failed stress interaction check.")
+f.close()

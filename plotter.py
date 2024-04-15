@@ -5,7 +5,6 @@ Created on Mon Feb 26 16:57:35 2024
 @author: Cerys Morley
 
 This file creates a generic plot with formatting variables as inputs.
-Cannot be used standalone.
 """
 
 import matplotlib.pyplot as plt

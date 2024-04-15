@@ -25,10 +25,10 @@ def p_thStresses(p_th: float, Z: np.ndarray[float]):
     dN_z = np.zeros(np.shape(Z))
     return [dN_th, dN_zth, dN_z]
 
-def p_zStresses(p_z: float, H: float, Z: np.ndarray[float]):
+def p_zStresses(p_z: float, h: float, Z: np.ndarray[float]):
     dN_th = np.zeros(np.shape(Z))
     dN_zth = np.zeros(np.shape(Z))
-    dN_z = p_z*(H-Z) # in z-coords
+    dN_z = p_z*(h-Z) # in z-coords
     return [dN_th, dN_zth, dN_z]
 
 def PStresses(P: float, R: float, Z: np.ndarray[float]):
@@ -46,7 +46,7 @@ def TStresses(T: float, R: float, Theta: np.ndarray[float]):
 def MStresses(M: float, R: float, Theta: np.ndarray[float]):
     dN_th = np.zeros(np.shape(Theta))
     dN_zth = np.zeros(np.shape(Theta)) # *applied* moment gradient = 0. gradient from Q included there.
-    dN_z = -M*np.cos(Theta)/(math.pi*R**2) # cos(th)
+    dN_z = M*np.cos(Theta)/(math.pi*R**2) # cos(th)
     return [dN_th, dN_zth, dN_z]
 
 def QStresses(Q: float, R: float, lever_arm: np.ndarray[float], Theta: np.ndarray[float,float]):
@@ -55,7 +55,7 @@ def QStresses(Q: float, R: float, lever_arm: np.ndarray[float], Theta: np.ndarra
     dN_z = -Q*np.cos(Theta)*lever_arm/(math.pi*R*R) # cos(th)
     return [dN_th, dN_zth, dN_z]
 
-def cumulativeStresses(loads: dict[str,float], Z: np.ndarray[float], Theta: np.ndarray[float], s: strake.strake, H: float):
+def cumulativeStresses(loads: dict[str,float], Z: np.ndarray[float], Theta: np.ndarray[float], s: strake.strake):
     """Sums the contributions from all load types to the membrane stress resultants"""
 
     # initialise N: ndarray[float]
@@ -64,9 +64,9 @@ def cumulativeStresses(loads: dict[str,float], Z: np.ndarray[float], Theta: np.n
     # add stresses
     N += np.array(p_rStresses(loads["p_r"],s.r,Z))
     N += np.array(p_thStresses(loads["p_th"],Z))
-    N += np.array(p_zStresses(loads["p_z"],H,Z))
+    N += np.array(p_zStresses(loads["p_z"],s.h,Z))
     N += np.array(PStresses(loads["P"],s.r,Z))
-    N += np.array(QStresses(loads["Q"],s.r,H-Z,Theta))
+    N += np.array(QStresses(loads["Q"],s.r,s.h-Z,Theta))
     N += np.array(TStresses(loads["T"],s.r,Theta))
     N += np.array(MStresses(loads["M"],s.r,Theta))
 

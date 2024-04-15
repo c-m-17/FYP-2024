@@ -1,0 +1,160 @@
+
+101
+Global equilibrium satisified.
+{'P': 2.328306436538696e-16, 'Q': 1.4551915228366853e-16, 'T': 1.7339533025568182e-16, 'M': 2.543131510416667e-16}
+Axial check passed.
+Value: 17.154447233063706
+Shear check passed.
+Value: 6.289449265038364
+Interaction check passed.
+Value: None
+
+102
+Global equilibrium satisified.
+{'P': 1.1521421072060744e-16, 'Q': 1.4551915228366853e-16, 'T': 1.7339533025568182e-16, 'M': 1.2321373596979974e-16}
+Axial check passed.
+Value: 86.33400673105781
+Shear check passed.
+Value: 32.25141458674428
+Interaction check passed.
+Value: None
+
+103
+Global equilibrium satisified.
+{'P': 4.561277011054265e-16, 'Q': 0.0, 'T': 1.7339533025568182e-16, 'M': 0.0}
+Axial check passed.
+Value: 91.55768656653197
+Shear check passed.
+Value: 30.846291320008273
+Interaction check passed.
+Value: None
+
+104
+Global equilibrium satisified.
+{'P': 0.0, 'Q': 1.4551915228366853e-16, 'T': 1.7339533025568182e-16, 'M': 0.0}
+Axial check passed.
+Value: 87.02902912075261
+Shear check passed.
+Value: 26.025820490267193
+Interaction check passed.
+Value: None
+
+105
+Global equilibrium satisified.
+{'P': 6.680525748283503e-16, 'Q': 0.0, 'T': 0.0, 'M': 0.0}
+Axial check passed.
+Value: 91.4366474359246
+Shear check passed.
+Value: 24.282709592447794
+Interaction check passed.
+Value: None
+
+106
+Global equilibrium satisified.
+{'P': 4.3989313099500674e-16, 'Q': 2.9103830456733706e-16, 'T': 0.0, 'M': 0.0}
+Axial check passed.
+Value: 95.60152606381232
+Shear check passed.
+Value: 22.364960602619707
+Interaction check passed.
+Value: None
+
+107
+Global equilibrium satisified.
+{'P': 6.525936563026042e-16, 'Q': 0.0, 'T': 1.7339533025568182e-16, 'M': 0.0}
+Axial check passed.
+Value: 98.68081622520123
+Shear check passed.
+Value: 21.378929050865803
+Interaction check passed.
+Value: None
+
+108
+Global equilibrium satisified.
+{'P': 6.448063682167705e-16, 'Q': 0.0, 'T': 0.0, 'M': 1.3753595563978224e-16}
+Axial check passed.
+Value: 92.2122833784659
+Shear check passed.
+Value: 18.095719492665868
+Interaction check passed.
+Value: None
+
+109
+Global equilibrium satisified.
+{'P': 2.122312340653395e-16, 'Q': 1.4551915228366853e-16, 'T': 1.7339533025568182e-16, 'M': 1.2777671852808966e-16}
+Axial check passed.
+Value: 94.83262504768477
+Shear check passed.
+Value: 16.97898412175697
+Interaction check passed.
+Value: None
+
+110
+Global equilibrium satisified.
+{'P': 4.1920612977562397e-16, 'Q': 1.4551915228366853e-16, 'T': 1.7339533025568182e-16, 'M': 1.1933757744653628e-16}
+Axial check passed.
+Value: 97.22630879981443
+Shear check passed.
+Value: 15.952649631008443
+Interaction check passed.
+Value: None
+
+111
+Global equilibrium satisified.
+{'P': 2.0704782865571495e-16, 'Q': 2.9103830456733706e-16, 'T': 0.0, 'M': 1.11967773781465e-16}
+Axial check passed.
+Value: 99.42241740252018
+Shear check passed.
+Value: 15.006846454247164
+Interaction check passed.
+Value: None
+
+112
+Global equilibrium satisified.
+{'P': 6.136877222655894e-16, 'Q': 2.9103830456733706e-16, 'T': 1.7339533025568182e-16, 'M': 0.0}
+Axial check failed.
+Value: 103.25528748741176
+Shear check passed.
+Value: 13.95957396642411
+Interaction check passed.
+Value: None
+
+113
+Global equilibrium satisified.
+{'P': 0.0, 'Q': 2.9103830456733706e-16, 'T': 1.7339533025568182e-16, 'M': 0.0}
+Axial check passed.
+Value: 97.89650493925006
+Shear check passed.
+Value: 12.260442708130178
+Interaction check passed.
+Value: None
+
+114
+Global equilibrium satisified.
+{'P': 2.006365248569916e-16, 'Q': 2.9103830456733706e-16, 'T': 1.7339533025568182e-16, 'M': 0.0}
+Axial check failed.
+Value: 101.92221940023438
+Shear check passed.
+Value: 13.014879279275844
+Interaction check passed.
+Value: None
+
+115
+Global equilibrium satisified.
+{'P': 5.951571602717027e-16, 'Q': 2.9103830456733706e-16, 'T': 1.7339533025568182e-16, 'M': 1.8442387817026357e-16}
+Axial check passed.
+Value: 97.64772233054806
+Shear check passed.
+Value: 12.340568077999528
+Interaction check passed.
+Value: None
+
+116
+Global equilibrium satisified.
+{'P': 5.866031851688034e-16, 'Q': 2.9103830456733706e-16, 'T': 1.7339533025568182e-16, 'M': 0.0}
+Axial check passed.
+Value: 82.31005192859273
+Shear check passed.
+Value: 9.024309285676392
+Interaction check passed.
+Value: None

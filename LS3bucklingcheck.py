@@ -160,7 +160,7 @@ def checkIndividualStresses(N_Ed,N_Rd):
 
     utilisation = abs(N_Ed)*100/abs(N_Rd) # percentage
 
-    return check, utilisation
+    return [check, utilisation]
 
 # check interactions between stress components
 def checkStressInteractions(sigma_Ed: list[float],sigma_Rd: list[float],chi: list[float]):
@@ -176,7 +176,7 @@ def checkStressInteractions(sigma_Ed: list[float],sigma_Rd: list[float],chi: lis
     # gives binary True/False scalar
     # EN 1993-1-6 9.36
     check = ((sigma_Ed[0]/sigma_Rd[0])**k_i[0]) - alpha_i*(sigma_Ed[0]/sigma_Rd[0])*(sigma_Ed[1]/sigma_Rd[1]) + ((sigma_Ed[1]/sigma_Rd[1])**k_i[1]) + ((sigma_Ed[2]/sigma_Rd[2])**k_i[2]) <= 1.0
-    return check
+    return [check, None]
 
 # buckling interaction parameters
 def calck_iAndalpha_i(chi: list[float]):
