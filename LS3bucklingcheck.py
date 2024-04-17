@@ -5,6 +5,7 @@ Created on Thu Mar  7 12:26:43 2024
 @author: Cerys Morley
 """
 import math
+import strake
 
 # finds elastic critical axial buckling stress
 def calcElasticCriticalAxialBucklingStress(E: float,C_x: float,r: float,t: float):
@@ -17,52 +18,6 @@ def calcElasticCriticalShearBucklingStress(E: float,C_tau: float,omega: float,r:
     # EN 1993-1-6 D.40
     tau_xthRcr = 0.75*E*C_tau*math.sqrt(1/omega)*t/r
     return tau_xthRcr
-
-# find critical buckling factor C_x
-def calcC_x(omega: float,r: float,t: float):
-
-    if omega < 1.7: # EN 1993-1-6 D.3
-        # short length
-        C_x = 1.36 - (1.83/omega) + (2.07/(omega**2)) # EN 1993-1-6 D.8
-
-    elif omega < 1.43*r/t: # EN 1993-1-6 D.4
-        # medium length
-        C_x = 1 # EN 1993-1-6 D.7
-
-    else:
-        # long length
-        C_x = 1
-
-    return C_x
-
-# find critical buckling factor C_tau
-def calcC_tau(omega: float,r: float,t: float):
-
-    if omega < 10: # EN 1993-1-6 D.37
-        # short cylinder
-        # assuming BC1r or BC2r:
-        alpha_taus = 120 - 130/(1+ 0.015*r/t) # EN 1993-1-6 D.43
-        # assuming BC1f or BC2f:
-        # alpha_taus = 70 - 75/(1 + 0.015*((r/t)**1.1)) # EN 1993-1-6 D.44
-
-        b = 3 - 5/(1 + 0.4*((r/t)**0.6)) # EN 1993-1-6 D.45
-        C_tau = math.sqrt(1 + alpha_taus/(omega**b)) # EN 1993-1-6 D.42
-
-    elif 10 <= omega < 8.7*r/t: # EN 1993-1-6 D.38
-        # medium-length cylinder
-        C_tau = 1.0 # EN 1993-1-6 D.41
-
-    else: # EN 1993-1-6 D.39
-        # long cylinder
-        C_tau = math.sqrt(omega*t/r)/3 # EN 1993-1-6 D.46
-
-    return C_tau
-
-# relative length of shell segment
-def calcRelativeLength(L:float,r: float,t: float):
-    # EN 1993-1-6 Equation D.1
-    omega = L/math.sqrt(r*t)
-    return omega
 
 # check if axial buckling even needs to be checked
 def initialAxialBucklingCheck(E: float,C_x: float,f_yk: float,r:float,t:float):
@@ -90,13 +45,16 @@ def calcBucklingReductionFactor(lambda_bar: float,lambda_bar0: float,chi_h: floa
     lambda_barp = calcLambdaBarP(alpha, beta)
 
     if lambda_bar <= lambda_bar0:
+        region = "under squash limit"
         chi = chi_h - (lambda_bar/lambda_bar0)*(chi_h-1) # EN 1993-1-6 9.22
     elif lambda_bar < lambda_barp:
+        region = "elastic region"
         chi = 1 - beta*(((lambda_bar-lambda_bar0)/(lambda_barp-lambda_bar0))**eta) # EN 1993-1-6 9.23
     else:
+        region = "plastic region"
         chi = alpha/(lambda_bar**2) # EN 1993-1-6 9.24
 
-    return chi
+    return chi, region
 
 # calculate imperfection amplitude
 def calcImperfectionAmplitude(Q: float,r: float,t: float):
@@ -190,19 +148,16 @@ def calck_iAndalpha_i(chi: list[float]):
 
     return k_i, alpha_i
 
-def findAxialBucklingStress(E: float,f_yk: float,Q_x_val: float,lambda_x0: float,chi_xh: float,L: float,r: float,t: float,gamma_M1: float):
-    omega = calcRelativeLength(L, r, t)
+def findAxialBucklingStress(E: float,f_yk: float,Q_x_val: float,lambda_x0: float,chi_xh: float,gamma_M1: float,s: strake.strake):
+    # check = initialAxialBucklingCheck(E, C_x, f_yk, s.r, s.t)
+    # if check == True:
+    #     print("Axial buckling does not need to be checked.")
 
-    C_x = calcC_x(omega, r, t)
-    check = initialAxialBucklingCheck(E, C_x, f_yk, r, t)
-    if check == True:
-        print("Axial buckling does not need to be checked.")
-
-    sigma_xRcr = calcElasticCriticalAxialBucklingStress(E, C_x,r,t)
+    sigma_xRcr = calcElasticCriticalAxialBucklingStress(E, s.C_x,s.r,s.t)
 
     lambda_bar = calcRelativeSlenderness(f_yk, sigma_xRcr)
 
-    dt = calcImperfectionAmplitude(Q_x_val, r, t)
+    dt = calcImperfectionAmplitude(Q_x_val, s.r, s.t)
     alpha = calcAlpha_x(dt)
     beta = calcBeta_x(dt)
 
@@ -211,35 +166,31 @@ def findAxialBucklingStress(E: float,f_yk: float,Q_x_val: float,lambda_x0: float
     lambda_barp = calcLambdaBarP(alpha, beta)
 
     eta = calcEta(lambda_bar, lambda_x0, lambda_barp, eta_x0, eta_xp)
-    chi = calcBucklingReductionFactor(lambda_bar, lambda_x0, chi_xh, alpha, beta, eta)
+    [chi, region] = calcBucklingReductionFactor(lambda_bar, lambda_x0, chi_xh, alpha, beta, eta)
 
     sigma_xRd = calcDesignBucklingStress(chi, f_yk, gamma_M1)
 
-    return sigma_xRd, chi
+    return sigma_xRd, [chi,region]
 
-def findShearBucklingStress(E: float,f_yk: float,Q_tau_val: float,lambda_tau0: float,chi_tauh: float,beta_tau: float,eta_tau:float,L:float,r:float,t:float,gamma_M1:float):
-    omega = calcRelativeLength(L, r, t)
+def findShearBucklingStress(E: float,f_yk: float,Q_tau_val: float,lambda_tau0: float,chi_tauh: float,beta_tau: float,eta_tau:float,gamma_M1:float,s: strake.strake):
+    # check = initialShearBucklingCheck(E, f_yk, s.r, s.t)
+    # if check == True:
+    #     print("Axial buckling does not need to be checked.")
 
-    C_tau = calcC_tau(omega, r, t)
-    check = initialShearBucklingCheck(E, f_yk, r, t)
-    if check == True:
-        print("Axial buckling does not need to be checked.")
-
-    tau_xthRcr = calcElasticCriticalShearBucklingStress(E, C_tau, omega, r, t)
+    tau_xthRcr = calcElasticCriticalShearBucklingStress(E, s.C_tau, s.omega, s.r, s.t)
     lambda_bar = calcRelativeSlenderness(f_yk/math.sqrt(3), tau_xthRcr)
 
-    dt = calcImperfectionAmplitude(Q_tau_val, r, t)
+    dt = calcImperfectionAmplitude(Q_tau_val, s.r, s.t)
     alpha_tau = calcAlpha_tau(dt)
 
-    chi = calcBucklingReductionFactor(lambda_bar, lambda_tau0, chi_tauh, alpha_tau, beta_tau, eta_tau)
+    [chi, region] = calcBucklingReductionFactor(lambda_bar, lambda_tau0, chi_tauh, alpha_tau, beta_tau, eta_tau)
 
     tau_xthRd = calcDesignBucklingStress(chi, f_yk/math.sqrt(3), gamma_M1)
 
-    return tau_xthRd, chi
+    return tau_xthRd, [chi,region]
 
 # if running this file directly
 if __name__ == "__main__":
-    import conicalgeometrytocylindrical as geometry
     # check that strake doesn't buckle
     # constants
     f_yk = 355 # characteristic steel strength [N/mm2]
@@ -261,8 +212,8 @@ if __name__ == "__main__":
     # geometry import
     filename = "Sadowskietal2023-benchmarkgeometries.csv"
     strakeID = 107
-    L, r, t = geometry.findStrakeGeometry(filename, strakeID)
+    s = strake.strake(strakeID,filename)
 
     # find design resistances
-    sigma_xRd = findAxialBucklingStress(E,f_yk,Q_x_val,lambda_x0,chi_xh,L,r,t,gamma_M1)
-    tau_xthRd = findShearBucklingStress(E,f_yk,Q_tau_val,lambda_tau0,chi_tauh,beta_tau,eta_tau,L,r,t,gamma_M1)
+    sigma_xRd, chi_x = findAxialBucklingStress(E,f_yk,Q_x_val,lambda_x0,chi_xh,gamma_M1,s)
+    tau_xthRd, chi_tau = findShearBucklingStress(E,f_yk,Q_tau_val,lambda_tau0,chi_tauh,beta_tau,eta_tau,gamma_M1,s)

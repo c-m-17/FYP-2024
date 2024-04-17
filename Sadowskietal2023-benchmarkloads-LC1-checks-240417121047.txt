@@ -8,6 +8,11 @@ Shear check passed.
 Value: 2.9856058223781803
 Interaction check passed.
 Value: None
+omega = 1.8638844220394541
+C_x = 1
+C_tau = 3.587532162862758
+chi_x elastic region
+chi_tau under squash limit
 
 102
 Global equilibrium satisified.
@@ -18,6 +23,11 @@ Shear check passed.
 Value: 15.610011614017253
 Interaction check failed.
 Value: None
+omega = 14.032804362299093
+C_x = 1
+C_tau = 1.0
+chi_x elastic region
+chi_tau elastic region
 
 103
 Global equilibrium satisified.
@@ -28,6 +38,11 @@ Shear check passed.
 Value: 15.573836503656288
 Interaction check failed.
 Value: None
+omega = 15.320810385105858
+C_x = 1
+C_tau = 1.0
+chi_x elastic region
+chi_tau elastic region
 
 104
 Global equilibrium satisified.
@@ -38,6 +53,11 @@ Shear check passed.
 Value: 13.76349202121992
 Interaction check failed.
 Value: None
+omega = 15.183057537989164
+C_x = 1
+C_tau = 1.0
+chi_x elastic region
+chi_tau elastic region
 
 105
 Global equilibrium satisified.
@@ -48,6 +68,11 @@ Shear check passed.
 Value: 13.45327197426858
 Interaction check failed.
 Value: None
+omega = 14.898045650858748
+C_x = 1
+C_tau = 1.0
+chi_x elastic region
+chi_tau elastic region
 
 106
 Global equilibrium satisified.
@@ -58,6 +83,11 @@ Shear check passed.
 Value: 12.942178401809757
 Interaction check failed.
 Value: None
+omega = 13.263588200032052
+C_x = 1
+C_tau = 1.0
+chi_x elastic region
+chi_tau elastic region
 
 107
 Global equilibrium satisified.
@@ -68,6 +98,11 @@ Shear check passed.
 Value: 12.912765242887795
 Interaction check failed.
 Value: None
+omega = 14.384960794975395
+C_x = 1
+C_tau = 1.0
+chi_x elastic region
+chi_tau elastic region
 
 108
 Global equilibrium satisified.
@@ -78,6 +113,11 @@ Shear check passed.
 Value: 11.423862804372716
 Interaction check failed.
 Value: None
+omega = 13.65538175892408
+C_x = 1
+C_tau = 1.0
+chi_x elastic region
+chi_tau elastic region
 
 109
 Global equilibrium satisified.
@@ -88,6 +128,11 @@ Shear check passed.
 Value: 11.195875017403795
 Interaction check failed.
 Value: None
+omega = 13.42350860916135
+C_x = 1
+C_tau = 1.0
+chi_x elastic region
+chi_tau elastic region
 
 110
 Global equilibrium satisified.
@@ -98,6 +143,11 @@ Shear check passed.
 Value: 10.980388096811724
 Interaction check failed.
 Value: None
+omega = 13.200880189809839
+C_x = 1
+C_tau = 1.0
+chi_x elastic region
+chi_tau elastic region
 
 111
 Global equilibrium satisified.
@@ -108,6 +158,11 @@ Shear check passed.
 Value: 10.77633235037871
 Interaction check failed.
 Value: None
+omega = 12.986809958841505
+C_x = 1
+C_tau = 1.0
+chi_x elastic region
+chi_tau elastic region
 
 112
 Global equilibrium satisified.
@@ -118,6 +173,11 @@ Shear check passed.
 Value: 10.237020908711013
 Interaction check failed.
 Value: None
+omega = 10.182128133810403
+C_x = 1
+C_tau = 1.0
+chi_x elastic region
+chi_tau elastic region
 
 113
 Global equilibrium satisified.
@@ -128,6 +188,11 @@ Shear check passed.
 Value: 8.990991319295464
 Interaction check failed.
 Value: None
+omega = 9.854035859853196
+C_x = 1
+C_tau = 1.1321894689600949
+chi_x elastic region
+chi_tau elastic region
 
 114
 Global equilibrium satisified.
@@ -138,6 +203,11 @@ Shear check passed.
 Value: 9.544244804802286
 Interaction check failed.
 Value: None
+omega = 11.288997056667812
+C_x = 1
+C_tau = 1.0
+chi_x elastic region
+chi_tau elastic region
 
 115
 Global equilibrium satisified.
@@ -148,6 +218,11 @@ Shear check passed.
 Value: 9.04974992386632
 Interaction check failed.
 Value: None
+omega = 13.398546493121641
+C_x = 1
+C_tau = 1.0
+chi_x elastic region
+chi_tau elastic region
 
 116
 Global equilibrium satisified.
@@ -158,3 +233,8 @@ Shear check passed.
 Value: 6.61782680949602
 Interaction check passed.
 Value: None
+omega = 0.65674615188929
+C_x = 3.3728062309309426
+C_tau = 15.263329567470732
+chi_x elastic region
+chi_tau under squash limit

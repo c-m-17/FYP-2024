@@ -11,7 +11,6 @@ This script optmises the thicknesses in a tower.
 import math
 import numpy as np
 from datetime import datetime
-import matplotlib.pyplot as plt
 
 import strake
 import error
@@ -23,7 +22,7 @@ import LS3bucklingcheck as LS3
 # user inputs
 
 geoms_filename = "Sadowskietal2023-benchmarkgeometries.csv"
-loads_filename = "Sadowskietal2023-benchmarkloads-LC2.csv"
+loads_filename = "Sadowskietal2023-benchmarkloads-LC1.csv"
 
 # constants
 f_yk = 345 # characteristic steel strength [N/mm2]
@@ -62,10 +61,13 @@ strakes = {strakeID : strake.strake(strakeID,geoms_filename) for i, strakeID in 
 # set up loop
 theta = np.linspace(0,2*math.pi,361)
 sigma_xRd = {key : None for key in strakes.keys()}
-tau_xthRd = {key : None for key in strakes.keys()}
+tau_xthRd = sigma_xRd.copy()
 
-sigma_xEd = {key : None for key in strakes.keys()}
-tau_xthEd = {key : None for key in strakes.keys()}
+sigma_xEd = sigma_xRd.copy()
+tau_xthEd = sigma_xRd.copy()
+
+chi_x = sigma_xRd.copy()
+chi_tau = sigma_xRd.copy()
 
 # {strakeID : {checktype : list[boolean, values]}}
 checks = {key: {"Axial check": [None]*2,
@@ -95,17 +97,17 @@ for strakeID, s in strakes.items():
 
     # LS3 buckling checks
     # axial
-    sigma_xRd[strakeID], chi_x = LS3.findAxialBucklingStress(E, f_yk, Q_x[fab_class], lambda_x0, chi_xh, s.h, s.r, s.t, gamma_M1)
+    sigma_xRd[strakeID], chi_x[strakeID] = LS3.findAxialBucklingStress(E, f_yk, Q_x[fab_class], lambda_x0, chi_xh,gamma_M1,s)
     checks[strakeID]["Axial check"] = LS3.checkIndividualStresses(sigma_xEd[strakeID], sigma_xRd[strakeID])
 
     # shear
-    tau_xthRd[strakeID], chi_tau = LS3.findShearBucklingStress(E, f_yk, Q_tau[fab_class], lambda_tau0, chi_tauh, beta_tau, eta_tau, s.h, s.r, s.t, gamma_M1)
+    tau_xthRd[strakeID], chi_tau[strakeID] = LS3.findShearBucklingStress(E, f_yk, Q_tau[fab_class], lambda_tau0, chi_tauh, beta_tau, eta_tau,gamma_M1,s)
     checks[strakeID]["Shear check"] = LS3.checkIndividualStresses(tau_xthEd[strakeID], tau_xthRd[strakeID])
 
     # interactions
     checks[strakeID]["Interaction check"] = LS3.checkStressInteractions([sigma_xEd[strakeID], 0, tau_xthEd[strakeID]],
                                                                          [sigma_xRd[strakeID],100,tau_xthRd[strakeID]],
-                                                                         [chi_x, 0, chi_tau])
+                                                                         [chi_x[strakeID][0], 0, chi_tau[strakeID][0]])
     
     loads["P"] += np.sum(selfWeight) # adds self weight of can to next cans loading
     loads["M"] += loads["Q"]*s.h # adds moment for current strake to new baseline for next strake
@@ -125,5 +127,12 @@ for key in strakes.keys():
     
     for check in checks[key].keys():
         error.printBoolCheck(f,check,checks[key][check][0],checks[key][check][1])
+
+    # f.write("omega = "+str(strakes[key].omega)+"\n")
+    # f.write("C_x = "+str(strakes[key].C_x)+"\n")
+    # f.write("C_tau = "+str(strakes[key].C_tau)+"\n")
+    # f.write("chi_x "+str(chi_x[key][1])+"\n")
+    # f.write("chi_tau "+str(chi_tau[key][1])+"\n")
+
 
 f.close()
