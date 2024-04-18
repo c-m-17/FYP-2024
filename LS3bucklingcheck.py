@@ -112,13 +112,13 @@ def calcDesignBucklingStress(chi: float,f_yk: float,gamma_M1: float):
     return sigma_Rd
 
 # check individual components do not exceed design values
-def checkIndividualStresses(N_Ed,N_Rd):
+def checkIndividualStresses(sigma_Ed,sigma_Rd):
     # gives binary true/false: "Does it exceed buckling stress?"
-    check = abs(N_Ed) <= abs(N_Rd) # EN 1993-1-6 9.33, 9.34, 9.35
+    check = abs(sigma_Ed) <= abs(sigma_Rd) # EN 1993-1-6 9.33, 9.34, 9.35
 
-    utilisation = abs(N_Ed)*100/abs(N_Rd) # percentage
+    objective = ((sigma_Rd**2) - (sigma_Ed**2))/(sigma_Rd**2)
 
-    return [check, utilisation]
+    return [check, objective]
 
 # check interactions between stress components
 def checkStressInteractions(sigma_Ed: list[float],sigma_Rd: list[float],chi: list[float]):
