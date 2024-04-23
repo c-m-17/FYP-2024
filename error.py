@@ -18,10 +18,10 @@ def printBoolCheck(f, check: str,binary: bool,val: float):
 
     if binary:
         f.write(check +" passed.\n")
+        f.write("Value: "+str(val*100)+" percent underutilised. \n")
     else:
         f.write(check +" failed.\n")
-
-    f.write("Value: "+str(val)+"\n")
+        f.write("Value: "+str(val*100)+" percent overutilised. \n")
 
 def calculateStressErrors(N: np.ndarray[float], loads: dict[str,float], r: float, tol: float):
     """Calculates error between numerical and analytical membrane stresses to return binary tolerance check"""

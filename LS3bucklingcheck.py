@@ -113,12 +113,13 @@ def calcDesignBucklingStress(chi: float,f_yk: float,gamma_M1: float):
 
 # check individual components do not exceed design values
 def checkIndividualStresses(sigma_Ed,sigma_Rd):
+    "Returns tuple of (bool, error) where error is same size as inputs."
     # gives binary true/false: "Does it exceed buckling stress?"
     check = abs(sigma_Ed) <= abs(sigma_Rd) # EN 1993-1-6 9.33, 9.34, 9.35
 
-    objective = ((sigma_Rd**2) - (sigma_Ed**2))/(sigma_Rd**2)
+    objective = abs(sigma_Rd - abs(sigma_Ed))/abs(sigma_Rd)
 
-    return [check, objective]
+    return check, objective
 
 # check interactions between stress components
 def checkStressInteractions(sigma_Ed: list[float],sigma_Rd: list[float],chi: list[float]):
@@ -134,7 +135,7 @@ def checkStressInteractions(sigma_Ed: list[float],sigma_Rd: list[float],chi: lis
     # gives binary True/False scalar
     # EN 1993-1-6 9.36
     check = ((sigma_Ed[0]/sigma_Rd[0])**k_i[0]) - alpha_i*(sigma_Ed[0]/sigma_Rd[0])*(sigma_Ed[1]/sigma_Rd[1]) + ((sigma_Ed[1]/sigma_Rd[1])**k_i[1]) + ((sigma_Ed[2]/sigma_Rd[2])**k_i[2]) <= 1.0
-    return [check, None]
+    return [check, 0.0]
 
 # buckling interaction parameters
 def calck_iAndalpha_i(chi: list[float]):
@@ -148,7 +149,12 @@ def calck_iAndalpha_i(chi: list[float]):
 
     return k_i, alpha_i
 
-def findAxialBucklingStress(E: float,f_yk: float,Q_x_val: float,lambda_x0: float,chi_xh: float,gamma_M1: float,s: strake.strake):
+def findAxialBucklingStress(E: float,f_yk: float, fabClass: str, gamma_M1: float,s: strake.strake):
+    # axial parameters
+    Q_x = {"Class A":40, "Class B":25, "Class C": 16} # EN 1993-1-6 Table D.1
+    Q_x_val = Q_x[fabClass]
+    chi_xh = 1.10 # EN 1993-1-6 D.19
+    lambda_x0 = 0.10 # EN 1993-1-6 D.10
     # check = initialAxialBucklingCheck(E, C_x, f_yk, s.r, s.t)
     # if check == True:
     #     print("Axial buckling does not need to be checked.")
@@ -172,7 +178,14 @@ def findAxialBucklingStress(E: float,f_yk: float,Q_x_val: float,lambda_x0: float
 
     return sigma_xRd, [chi,region]
 
-def findShearBucklingStress(E: float,f_yk: float,Q_tau_val: float,lambda_tau0: float,chi_tauh: float,beta_tau: float,eta_tau:float,gamma_M1:float,s: strake.strake):
+def findShearBucklingStress(E: float, f_yk: float, fabClass: str, gamma_M1:float, s: strake.strake):
+    # shear parameters
+    Q_tau = {"Class A":40, "Class B":25, "Class C": 16} # EN 1993-1-6 Table D.7
+    Q_tau_val = Q_tau[fabClass]
+    chi_tauh = 1.0 # EN 1993-1-6 D.53
+    lambda_tau0 = 0.40 # EN 1993-1-6 D.50
+    beta_tau = 0.60 # EN 1993-1-6 D.51
+    eta_tau = 1.0 # EN 1993-1-6 D.52
     # check = initialShearBucklingCheck(E, f_yk, s.r, s.t)
     # if check == True:
     #     print("Axial buckling does not need to be checked.")
@@ -193,21 +206,9 @@ def findShearBucklingStress(E: float,f_yk: float,Q_tau_val: float,lambda_tau0: f
 if __name__ == "__main__":
     # check that strake doesn't buckle
     # constants
-    f_yk = 355 # characteristic steel strength [N/mm2]
+    f_yk = 345e6 # characteristic steel strength [N/m2]
     gamma_M1 = 1.1 # EN 1993-1-6 Table 4.2
-    E = 210e3 # Young's Modulus [N/mm2]
-
-    Q_x = {"Class A":40, "Class B":25, "Class C": 16} # EN 1993-1-6 Table D.1
-    Q_x_val = Q_x["Class A"]
-    chi_xh = 1.10 # EN 1993-1-6 D.19
-    lambda_x0 = 0.10 # EN 1993-1-6 D.10
-
-    Q_tau = {"Class A":40, "Class B":25, "Class C": 16} # EN 1993-1-6 Table D.7
-    Q_tau_val = Q_tau["Class A"]
-    chi_tauh = 1.0 # EN 1993-1-6 D.53
-    lambda_tau0 = 0.40 # EN 1993-1-6 D.50
-    beta_tau = 0.60 # EN 1993-1-6 D.51
-    eta_tau = 1.0 # EN 1993-1-6 D.52
+    E = 210e9 # Young's Modulus [N/m2]
 
     # geometry import
     filename = "Sadowskietal2023-benchmarkgeometries.csv"
@@ -215,5 +216,5 @@ if __name__ == "__main__":
     s = strake.strake(strakeID,filename)
 
     # find design resistances
-    sigma_xRd, chi_x = findAxialBucklingStress(E,f_yk,Q_x_val,lambda_x0,chi_xh,gamma_M1,s)
-    tau_xthRd, chi_tau = findShearBucklingStress(E,f_yk,Q_tau_val,lambda_tau0,chi_tauh,beta_tau,eta_tau,gamma_M1,s)
+    sigma_xRd, chi_x = findAxialBucklingStress(E,f_yk,"Class A",gamma_M1,s)
+    tau_xthRd, chi_tau = findShearBucklingStress(E,f_yk,"Class A",gamma_M1,s)

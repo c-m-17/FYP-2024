@@ -11,6 +11,7 @@ This script optmises the thicknesses in a tower.
 import math
 import numpy as np
 from datetime import datetime
+from scipy import optimize as sc
 
 import strake
 import error
@@ -25,23 +26,10 @@ geoms_filename = "Sadowskietal2023-benchmarkgeometries.csv"
 loads_filename = "Sadowskietal2023-benchmarkloads-LC1.csv"
 
 # constants
-f_yk = 345 # characteristic steel strength [N/mm2]
+f_yk = 345e6 # characteristic steel strength [N/m2]
 gamma_M1 = 1.1 # EN 1993-1-6 Table 4.2
-E = 210e3 # Young's Modulus [N/mm2]
-rho = 7850e-9 # density [kg/mm3]
-g = -9.81 # gravity [m/s2]
-
-# axial parameters
-Q_x = {"Class A":40, "Class B":25, "Class C": 16} # EN 1993-1-6 Table D.1
-chi_xh = 1.10 # EN 1993-1-6 D.19
-lambda_x0 = 0.10 # EN 1993-1-6 D.10
-
-# shear parameters
-Q_tau = {"Class A":40, "Class B":25, "Class C": 16} # EN 1993-1-6 Table D.7
-chi_tauh = 1.0 # EN 1993-1-6 D.53
-lambda_tau0 = 0.40 # EN 1993-1-6 D.50
-beta_tau = 0.60 # EN 1993-1-6 D.51
-eta_tau = 1.0 # EN 1993-1-6 D.52
+E = 210e9 # Young's Modulus [N/m2]
+rho = 7850 # density [kg/m3]
 
 # parameters
 tol = 1e-3
@@ -69,6 +57,8 @@ tau_xthEd = sigma_xRd.copy()
 chi_x = sigma_xRd.copy()
 chi_tau = sigma_xRd.copy()
 
+min_t = sigma_xRd.copy()
+
 # {strakeID : {checktype : list[boolean, values]}}
 checks = {key: {"Axial check": [None]*2,
                 "Shear check": [None]*2,
@@ -83,7 +73,7 @@ for strakeID, s in strakes.items():
     z = np.linspace(0,s.h,100)
     Theta, Z = np.meshgrid(theta,z,indexing="ij")
  
-    selfWeight = np.array(fsr.p_zStresses(rho*g*s.t,s.h,Z)) # selfweight as p_z
+    selfWeight = np.array(fsr.p_zStresses(rho*-9.81*s.t,s.h,Z)) # selfweight as p_z
 
     # stresses
     N = fsr.cumulativeStresses(loads,Z,Theta,s)
@@ -97,11 +87,11 @@ for strakeID, s in strakes.items():
 
     # LS3 buckling checks
     # axial
-    sigma_xRd[strakeID], chi_x[strakeID] = LS3.findAxialBucklingStress(E, f_yk, Q_x[fab_class], lambda_x0, chi_xh,gamma_M1,s)
+    sigma_xRd[strakeID], chi_x[strakeID] = LS3.findAxialBucklingStress(E, f_yk, fab_class, gamma_M1,s)
     checks[strakeID]["Axial check"] = LS3.checkIndividualStresses(sigma_xEd[strakeID], sigma_xRd[strakeID])
 
     # shear
-    tau_xthRd[strakeID], chi_tau[strakeID] = LS3.findShearBucklingStress(E, f_yk, Q_tau[fab_class], lambda_tau0, chi_tauh, beta_tau, eta_tau,gamma_M1,s)
+    tau_xthRd[strakeID], chi_tau[strakeID] = LS3.findShearBucklingStress(E, f_yk, fab_class,gamma_M1,s)
     checks[strakeID]["Shear check"] = LS3.checkIndividualStresses(tau_xthEd[strakeID], tau_xthRd[strakeID])
 
     # interactions
@@ -109,7 +99,10 @@ for strakeID, s in strakes.items():
                                                                          [sigma_xRd[strakeID],100,tau_xthRd[strakeID]],
                                                                          [chi_x[strakeID][0], 0, chi_tau[strakeID][0]])
     
-    loads["P"] += np.sum(selfWeight) # adds self weight of can to next cans loading
+    # min_t[strakeID] = sc.minimize(optimise.objectiveFunction,s.t,args=(s,loads,2,rho,E,f_yk,fab_class,gamma_M1),
+                                #   bounds=sc.Bounds(1,s.r))
+    
+    loads["P"] += selfWeight[2,0,0]*2*math.pi*s.r # adds self weight of this can to next cans loading
     loads["M"] += loads["Q"]*s.h # adds moment for current strake to new baseline for next strake
 
 # checks output
@@ -128,11 +121,13 @@ for key in strakes.keys():
     for check in checks[key].keys():
         error.printBoolCheck(f,check,checks[key][check][0],checks[key][check][1])
 
-    # f.write("omega = "+str(strakes[key].omega)+"\n")
-    # f.write("C_x = "+str(strakes[key].C_x)+"\n")
-    # f.write("C_tau = "+str(strakes[key].C_tau)+"\n")
-    # f.write("chi_x "+str(chi_x[key][1])+"\n")
-    # f.write("chi_tau "+str(chi_tau[key][1])+"\n")
 
+    f.write("omega = "+str(strakes[key].omega)+"\n")
+    f.write("C_x = "+str(strakes[key].C_x)+"\n")
+    f.write("C_tau = "+str(strakes[key].C_tau)+"\n")
+    f.write("chi_x "+str(chi_x[key][1])+"\n")
+    f.write("chi_tau "+str(chi_tau[key][1])+"\n")
+
+# f.write(str(min_t))
 
 f.close()

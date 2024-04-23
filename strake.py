@@ -10,9 +10,9 @@ import math
 class strake:
     """Individual section of tower with constant thickness, height and radius."""
     def __init__(self,strakeID: int, geoms_filename: str):
-        # height, radius, thickness [mm]
+        # height, radius, thickness [m]
         self.h, self.r, self.t = geometry.findStrakeGeometry(geoms_filename,strakeID)
-        # base z-coord in global system [mm]
+        # base z-coord in global system [m]
         self.z0 = geometry.findStrakePositionGlobal(geoms_filename,strakeID)
 
         self.omega = self.h/math.sqrt(self.r*self.t)

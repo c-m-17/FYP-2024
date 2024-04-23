@@ -28,7 +28,7 @@ def listStrakeIDs(filename: str):
     df = pd.read_csv(filename)
     StrakeIDlist = df["ID"]
 
-    H = sum(df["h (mm)"]) # total tower height
+    H = sum(df["h (mm)"])/1e3 # total tower height
     V = 0
     for i, ID in enumerate(StrakeIDlist):
         h, R, t = findStrakeGeometry(filename, ID)
@@ -41,14 +41,14 @@ def findStrakeGeometry(filename: str, strakeID: int):
     """Finds geometry of a strake."""
     geoms, I = findStrakeIndex(filename, strakeID)
 
-    h = geoms['h (mm)'].iloc[I]
+    h = geoms['h (mm)'].iloc[I]/1000
     beta = geoms['beta (rad)'].iloc[I]
     d_1 = geoms['d1 (top) (mm)'].iloc[I]
     d_2 = geoms['d2 (bottom) (mm)'].iloc[I]
-    t = geoms['t (mm)'].iloc[I]
+    t = geoms['t (mm)'].iloc[I]/1000
 
-    R = averageRadius(d_1, d_2)
-    return [h,R,t]
+    R = averageRadius(d_1, d_2)/1000
+    return h, R, t
 
 # returns the global z-coordinate of the given strake's bottom boundary
 def findStrakePositionGlobal(filename: str, strakeID: int):
@@ -56,6 +56,6 @@ def findStrakePositionGlobal(filename: str, strakeID: int):
     geoms, I = findStrakeIndex(filename, strakeID)
 
     H = sum(geoms["h (mm)"]) # total tower height
-    z0 = H - sum(geoms["h (mm)"].iloc[range(0,I+1,1)]) # z*=0 in global z-coord
+    z0 = (H - sum(geoms["h (mm)"].iloc[range(0,I+1,1)]))/1e3 # z*=0 in global z-coord
 
     return z0
