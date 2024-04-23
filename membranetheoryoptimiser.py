@@ -14,6 +14,7 @@ from datetime import datetime
 from scipy import optimize as sc
 
 import strake
+import optimise
 import error
 import conicalgeometrytocylindrical as geometry
 import globalloads as gl
@@ -23,7 +24,7 @@ import LS3bucklingcheck as LS3
 # user inputs
 
 geoms_filename = "Sadowskietal2023-benchmarkgeometries.csv"
-loads_filename = "Sadowskietal2023-benchmarkloads-LC1.csv"
+loads_filename = "Sadowskietal2023-benchmarkloads-LC2.csv"
 
 # constants
 f_yk = 345e6 # characteristic steel strength [N/m2]
@@ -99,8 +100,8 @@ for strakeID, s in strakes.items():
                                                                          [sigma_xRd[strakeID],100,tau_xthRd[strakeID]],
                                                                          [chi_x[strakeID][0], 0, chi_tau[strakeID][0]])
     
-    # min_t[strakeID] = sc.minimize(optimise.objectiveFunction,s.t,args=(s,loads,2,rho,E,f_yk,fab_class,gamma_M1),
-                                #   bounds=sc.Bounds(1,s.r))
+    min_t[strakeID] = sc.minimize(optimise.objectiveFunction,s.t,args=(s,loads,2,rho,E,f_yk,fab_class,gamma_M1),
+                                  bounds=sc.Bounds(0.01,s.r))
     
     loads["P"] += selfWeight[2,0,0]*2*math.pi*s.r # adds self weight of this can to next cans loading
     loads["M"] += loads["Q"]*s.h # adds moment for current strake to new baseline for next strake
@@ -128,6 +129,6 @@ for key in strakes.keys():
     f.write("chi_x "+str(chi_x[key][1])+"\n")
     f.write("chi_tau "+str(chi_tau[key][1])+"\n")
 
-# f.write(str(min_t))
+    f.write("Minimum thickness: "+str(min_t[key])+"\n\n")
 
 f.close()

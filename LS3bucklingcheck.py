@@ -117,7 +117,7 @@ def checkIndividualStresses(sigma_Ed,sigma_Rd):
     # gives binary true/false: "Does it exceed buckling stress?"
     check = abs(sigma_Ed) <= abs(sigma_Rd) # EN 1993-1-6 9.33, 9.34, 9.35
 
-    objective = abs(sigma_Rd - abs(sigma_Ed))/abs(sigma_Rd)
+    objective = abs(sigma_Rd + sigma_Ed)/abs(sigma_Rd)
 
     return check, objective
 
