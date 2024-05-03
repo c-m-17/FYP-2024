@@ -2,27 +2,41 @@
 This script defines the strake class.
 
 @author: Cerys Morley
-Created on 19 Feb 2024
 """
 import conicalgeometrytocylindrical as geometry
 import math
 
 class strake:
-    """Individual section of tower with constant thickness, height and radius."""
-    def __init__(self,strakeID: int, geoms_filename: str):
-        # height, radius, thickness [m]
-        self.h, self.r, self.t = geometry.findStrakeGeometry(geoms_filename,strakeID)
-        # base z-coord in global system [m]
-        self.z0 = geometry.findStrakePositionGlobal(geoms_filename,strakeID)
+    """
+    Individual hollow cylindrical section of tower with constant thickness, height and radius.
 
-        self.omega = self.h/math.sqrt(self.r*self.t)
+    h: height
+    r: radius
+    t: thickness
+    z0: Global z-coordinate of the strake base (where z=0 is tower base).
+    omega: relative length of strake
+    C_x: critical buckling factor under axial compression
+    C_tau: critical buckling factor under shear.
+    """
+    def __init__(self,strakeID: str | int, fileName: str) -> None:
+        """
+        strakeID: unique ID for the strake
+        fileName: relative path of file
+        """
+        self.h, self.r, self.t = geometry.findStrakeGeometry(fileName,strakeID)
+        self.z0 = geometry.findStrakePositionGlobal(fileName,strakeID)
+
+        self.omega = self.h/math.sqrt(self.r*self.t) # EN 1993-1-6 D.1
 
         self.C_x = self.calcC_x()
         self.C_tau = self.calcC_tau()
 
-        self.radiusConstrained = False
+    def calcC_x(self) -> float:
+        """
+        Calculates critical buckling factor under axial compression, C_x.
 
-    def calcC_x(self):
+        Reference: EN 1993-1-6 Annex D.
+        """
         if self.omega < 1.7:# EN 1993-1-6 D.3
             # short length
             C_x = 1.36 - (1.83/self.omega) + (2.07/(self.omega**2)) # EN 1993-1-6 D.8
@@ -34,7 +48,13 @@ class strake:
             C_x = 1
         return C_x
 
-    def calcC_tau(self):
+    def calcC_tau(self) -> float:
+        """
+        Calculates critical buckling factor under shear, C_tau.
+        Assumes BC1r or BC2r conditions at the strake edges.
+
+        Reference: EN 1993-1-6 Annex D.
+        """
         if self.omega < 10: # EN 1993-1-6 D.37
             # short cylinder
             # assuming BC1r or BC2r:
@@ -52,16 +72,13 @@ class strake:
             C_tau = math.sqrt(self.omega*self.t/self.r)/3 # EN 1993-1-6 D.46
         return C_tau
 
-# if file is run directly
 if __name__ == "__main__":  
-    geoms_filename = "Sadowskietal2023-benchmarkgeometries.csv"
+    geoms_filename : str = "Sadowskietal2023-benchmarkgeometries.csv"
 
-    # strake list import
     strakeList, H, V = geometry.listStrakeIDs(geoms_filename)
 
-    strakes = {}
+    strakes : dict[str | int,strake] = {}
     for ID, strakeID in enumerate(strakeList):
-        # create strake in dictionary
-        strakes[strakeID] = strake(strakeID)
+        strakes[strakeID] = strake(strakeID,geoms_filename)
 
     print(strakes)
