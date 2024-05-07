@@ -1,5 +1,3 @@
-# membranetheoryoptimiser
-
 """
 This script optmises the strake thicknesses in a tower.
 
@@ -7,7 +5,6 @@ This script optmises the strake thicknesses in a tower.
 2024
 """
 # module imports
-
 import math
 import numpy as np
 from datetime import datetime
@@ -175,9 +172,10 @@ for strakeID, s in strakes.items():
     selfWeight : np.ndarray[float] = fsr.p_zStresses(rho*-9.81*s.t,s.h,Z)
 
     minThickness[strakeID] = sc.minimize(objectiveFunction,s.t,args=(s,loads,rho,E,f_yk,fabClass,gamma_M1),
-                                  bounds=sc.Bounds(0.001,s.r),
-                                  constraints=[{"type":"ineq", "fun" : resistanceCheck, "args" : [s,loads,rho,E,f_yk,fabClass,gamma_M1]},
-                                               {"type":"eq","fun": stressInteractionConstraint, "args": [s,loads,rho,E,f_yk,fabClass,gamma_M1]}])
+                                         method="trust-constr",
+                                         bounds=sc.Bounds(0.001,s.r),
+                                         constraints=[{"type":"ineq", "fun" : resistanceCheck, "args" : [s,loads,rho,E,f_yk,fabClass,gamma_M1]},{"type":"eq","fun": stressInteractionConstraint, "args": [s,loads,rho,E,f_yk,fabClass,gamma_M1]}],
+                                         options={"disp" : True, "xtol" : 1e-10})
     
     loads["P"] += selfWeight[2,0,0]*2*math.pi*s.r # adds self weight of this can to next cans loading
     loads["M"] += loads["Q"]*s.h # adds total moment for current strake to new baseline for next strake
