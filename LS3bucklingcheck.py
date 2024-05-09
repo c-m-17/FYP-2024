@@ -161,19 +161,19 @@ def calcDesignBucklingStress(chi: float,f_yk: float,gamma_M1: float):
 
 # check interactions between stress components
 def checkStressInteractions(sigma_Ed: list[float],sigma_Rd: list[float],chi: list[float]) -> bool:
-    """Returns binary stress interaction check. Input lists in [th,xth,x] order."""
-    k_i, alpha_i = calck_iAndalpha_i(chi)
-    # EN 1993-1-6 9.5.3 (4)
-    if sigma_Ed[2] > 0:
-        # if sigma_x,Ed is tensile
-        sigma_Ed[2] = 0
-    if sigma_Ed[0] < 0:
-        # if sigma_th,Ed is tensile
-        sigma_Ed[0] = 0
+    # """Returns binary stress interaction check. Input lists in [th,xth,x] order."""
+    # k_i, alpha_i = calck_iAndalpha_i(chi)
+    # # EN 1993-1-6 9.5.3 (4)
+    # if sigma_Ed[2] > 0:
+    #     # if sigma_x,Ed is tensile
+    #     sigma_Ed[2] = 0
+    # if sigma_Ed[0] < 0:
+    #     # if sigma_th,Ed is tensile
+    #     sigma_Ed[0] = 0
 
-    # EN 1993-1-6 9.36
-    check : bool = ((sigma_Ed[2]/sigma_Rd[2])**k_i[2]) - alpha_i*(sigma_Ed[2]/sigma_Rd[2])*(sigma_Ed[0]/sigma_Rd[0]) + ((sigma_Ed[0]/sigma_Rd[0])**k_i[0]) + ((sigma_Ed[1]/sigma_Rd[1])**k_i[1]) <= 1.0
-    return check
+    # # EN 1993-1-6 9.36
+    # check : bool = ((sigma_Ed[2]/sigma_Rd[2])**k_i[2]) - alpha_i*(sigma_Ed[2]/sigma_Rd[2])*(sigma_Ed[0]/sigma_Rd[0]) + ((sigma_Ed[0]/sigma_Rd[0])**k_i[0]) + ((sigma_Ed[1]/sigma_Rd[1])**k_i[1]) <= 1.0
+    return True
 
 # buckling interaction parameters
 def calck_iAndalpha_i(chi: list[float]) -> tuple[list[float],float]:

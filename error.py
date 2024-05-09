@@ -48,8 +48,6 @@ def relativeSquaredError(*,trueValue, calcValue):
         err : list = []
         for i in range(len(trueValue)):
             err.append(((trueValue[i] - calcValue[i])**2)/(trueValue[i]**2))
-    except ZeroDivisionError:
-        err = (trueValue - calcValue)**2
 
     return err
 

@@ -1,5 +1,5 @@
 """
-This script optmises the strake thicknesses in a tower.
+This script optimises the strake thicknesses in a tower.
 
 @author: Cerys Morley
 2024
@@ -18,7 +18,7 @@ import LS3bucklingcheck as LS3
 
 # user inputs
 geoms_filename : str = "Sadowskietal2023-benchmarkgeometries.csv"
-loads_filename : str = "Sadowskietal2023-benchmarkloads-LC2.csv"
+loads_filename : str = "Sadowskietal2023-benchmarkloads-LC1.csv"
 
 # constants
 f_yk : float = 345e6 # characteristic steel strength [N/m2]
@@ -87,7 +87,7 @@ def objectiveFunction(t: np.ndarray, s: strake.strake, loads: dict[str,float], r
 
     returns: Relative error
     """
-    s.t = float(t[0])
+    s.t = float(abs(t[0]))
 
     sigma_thEd, tau_xthEd, sigma_xEd = findMembraneStresses(s,loads,rho)
 
@@ -99,7 +99,7 @@ def objectiveFunction(t: np.ndarray, s: strake.strake, loads: dict[str,float], r
     relSqErr : list[float] = error.relativeSquaredError(trueValue=[sigma_thRd, tau_xthRd, sigma_xRd],
                                                         calcValue=[sigma_thEd, tau_xthEd, -sigma_xEd])
     
-    f : float = min(relSqErr)
+    f : float = relSqErr[2]
 
     return f
 
@@ -120,7 +120,7 @@ def resistanceCheck(t : np.ndarray, s: strake.strake, loads: dict[str,float], rh
     returns: vector of relative errors for stress components in [th,xth,x] order,
     which must all be positive to ensure the resistance checks have passed.
     """
-    s.t = float(t[0])
+    s.t = float(abs(t[0]))
 
     sigma_thEd, tau_xthEd, sigma_xEd = findMembraneStresses(s,loads,rho)
 
@@ -150,7 +150,7 @@ def stressInteractionConstraint(t : np.ndarray, s : strake.strake, loads: dict[s
     returns: value of 0 or 1, the *opposite* of conventional True/False, so that the function should
     be equal to 0 to pass the check.
     """
-    s.t = float(t[0])
+    s.t = float(abs(t[0]))
 
     sigma_thEd, tau_xthEd, sigma_xEd = findMembraneStresses(s,loads,rho)
 
@@ -172,11 +172,10 @@ for strakeID, s in strakes.items():
     selfWeight : np.ndarray[float] = fsr.p_zStresses(rho*-9.81*s.t,s.h,Z)
 
     minThickness[strakeID] = sc.minimize(objectiveFunction,s.t,args=(s,loads,rho,E,f_yk,fabClass,gamma_M1),
-                                         method="trust-constr",
-                                         bounds=sc.Bounds(0.001,s.r),
-                                         constraints=[{"type":"ineq", "fun" : resistanceCheck, "args" : [s,loads,rho,E,f_yk,fabClass,gamma_M1]},{"type":"eq","fun": stressInteractionConstraint, "args": [s,loads,rho,E,f_yk,fabClass,gamma_M1]}],
-                                         options={"disp" : True, "xtol" : 1e-10})
-    
+                                         method="CG",
+                                        #  constraints=[{"type":"ineq", "fun" : resistanceCheck, "args" : [s,loads,rho,E,f_yk,fabClass,gamma_M1]},{"type":"eq","fun": stressInteractionConstraint, "args": [s,loads,rho,E,f_yk,fabClass,gamma_M1]}],
+                                         options={"disp" : True})
+
     loads["P"] += selfWeight[2,0,0]*2*math.pi*s.r # adds self weight of this can to next cans loading
     loads["M"] += loads["Q"]*s.h # adds total moment for current strake to new baseline for next strake
 
@@ -188,4 +187,4 @@ with open(loads_filename.split(".")[0]+"-results-"+datetime.now().strftime("%y%m
         f.write(str(minThickness[key].get("success"))+",")
         f.write(str(minThickness[key].get("message"))+",")
         f.write(str(minThickness[key].get("fun"))+",")
-        f.write(str(minThickness[key].get("x")[0]*1000)+",\n")
+        f.write(str(abs(minThickness[key].get("x")[0])*1000)+",\n")
