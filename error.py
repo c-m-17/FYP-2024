@@ -41,15 +41,13 @@ def relativeSquaredError(*,trueValue, calcValue):
     #     raise NotImplementedError("Input arguments must have same dtype.")
     try:
         if trueValue <= 1e-10:
-            err = (trueValue - calcValue)**2
+            err : float = (trueValue - calcValue)**2
         else:
             err : float = ((trueValue - calcValue)**2)/(trueValue**2)
     except TypeError:
         err : list = []
         for i in range(len(trueValue)):
             err.append(((trueValue[i] - calcValue[i])**2)/(trueValue[i]**2))
-    except ZeroDivisionError:
-        err = (trueValue - calcValue)**2
 
     return err
 

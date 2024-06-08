@@ -7,19 +7,36 @@ Created on Mon Feb 26 16:57:35 2024
 This file creates a generic plot with formatting variables as inputs.
 """
 
-import matplotlib.pyplot as plt
-import seaborn as sns; sns.set_theme()
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
+import seaborn as sns
 
-def plotter(figno,ncols,nrows,title,x,xlabel,y,ylabel):
-    fig, ax = plt.subplots(num = figno,layout="constrained")
-    
-    ax.plot(x,y);
-    
-    ax.set_title(title);
-    ax.set_xlabel(xlabel);
-    ax.set_ylabel(ylabel);
-    ax.legend();
-    
-    return fig
+sns.set_theme(style="whitegrid")
 
-# NOTE currently only works with nrows = 1 and ncols = 1.
+def plotTowerGeometry(fig : Figure, ax : Axes, strakes : dict, title : str) -> None:
+    """
+    Plots a single figure of the tower's geometry, and saves to a png file.
+
+    fig: Fugure object
+    ax: Axes object to plot to
+    strakes: strakeID, strake object key-value pairs.
+    title: Axes title
+
+    returns: Figure of the rho-z plane.
+    """
+    # fig, (ax1, ax2) = plt.subplots(num = figno, ncols=2, sharey=True, layout="constrained")
+
+    for ID, s in strakes.items():
+        # strake joints
+        ax.hlines(s.z0, -s.r_bot/2, s.r_bot/2,"blue")
+        ax.hlines(s.z0 + s.h, -s.r_top/2, s.r_top/2,"blue")
+
+        # strake sides
+        ax.plot([-s.r_bot/2, -s.r_top/2], [s.z0, s.z0 + s.h], "b-",
+                [s.r_bot/2, s.r_top/2], [s.z0, s.z0 + s.h], "b-")
+
+    ax.set_title(f"{title} Support Tower Geometry")
+    ax.set_xlabel(f"Strake radius [m]")
+
+    sns.despine(fig,ax,trim=True,offset=10)
+    fig.savefig(f"tower-geometry.png", format="png")

@@ -10,72 +10,88 @@ class strake:
     """
     Individual hollow cylindrical section of tower with constant thickness, height and radius.
 
-    h: height
-    r: radius
-    t: thickness
+    h: Height
+    r: Average radius
+    r_top: Top radius
+    r_bot: Bottom radius
+    t: Thickness
+    beta: Apex half-angle
     z0: Global z-coordinate of the strake base (where z=0 is tower base).
-    omega: relative length of strake
-    C_x: critical buckling factor under axial compression
-    C_tau: critical buckling factor under shear.
+    C_x: Critical buckling factor under axial compression
+    C_tau: Critical buckling factor under shear.
     """
     def __init__(self,strakeID: str | int, fileName: str) -> None:
         """
         strakeID: unique ID for the strake
         fileName: relative path of file
         """
-        self.h, self.r, self.t = geometry.findStrakeGeometry(fileName,strakeID)
-        self.z0 = geometry.findStrakePositionGlobal(fileName,strakeID)
+        self.h, d_1, d_2, self.t = geometry.findStrakeGeometry(fileName,strakeID)
+        self.z0 : float = geometry.findStrakePositionGlobal(fileName,strakeID)
 
-        self.omega = self.h/math.sqrt(self.r*self.t) # EN 1993-1-6 D.1
+        self.r_top : float = d_1/2
+        self.r_bot : float = d_2/2
 
-        self.C_x = self.calcC_x()
-        self.C_tau = self.calcC_tau()
+        self.update()
 
-    def calcC_x(self) -> float:
+    def update(self) -> None:
+        """
+        Updates strake's geometric properties when a new radius has been defined.
+        """
+        self.r : float = (self.r_top + self.r_bot)/2
+
+    def calcC_x(self, omega: float) -> float:
         """
         Calculates critical buckling factor under axial compression, C_x.
 
+        omega: Relative length of cylinder.
+
         Reference: EN 1993-1-6 Annex D.
+        returns: self.C_x
         """
-        if self.omega < 1.7:# EN 1993-1-6 D.3
+        if omega < 1.7: # EN 1993-1-6 D.3
             # short length
-            C_x = 1.36 - (1.83/self.omega) + (2.07/(self.omega**2)) # EN 1993-1-6 D.8
-        elif self.omega < 1.43*self.r/self.t: # EN 1993-1-6 D.4
+            C_x : float = 1.36 - (1.83/omega) + (2.07/(omega**2)) # EN 1993-1-6 D.8
+        elif omega < 1.43*self.r/self.t: # EN 1993-1-6 D.4
             # medium length
-            C_x = 1 # EN 1993-1-6 D.7  
+            C_x : float = 1.0 # EN 1993-1-6 D.7  
         else:
             # long length
-            C_x = 1
+            C_x : float = 1.0
         return C_x
 
-    def calcC_tau(self) -> float:
+    def calcC_tau(self, omega: float) -> float:
         """
-        Calculates critical buckling factor under shear, C_tau.
+        Calculates critical buckling factor under torsion, C_tau.
         Assumes BC1r or BC2r conditions at the strake edges.
+
+        omega: Relative length of cylinder.
 
         Reference: EN 1993-1-6 Annex D.
         """
-        if self.omega < 10: # EN 1993-1-6 D.37
+        if omega < 10: # EN 1993-1-6 D.37
             # short cylinder
             # assuming BC1r or BC2r:
-            alpha_taus = 120 - 130/(1+ 0.015*self.r/self.t) # EN 1993-1-6 D.43
+            alpha_taus : float = 120 - 130/(1+ 0.015*self.r/self.t) # EN 1993-1-6 D.43
             # assuming BC1f or BC2f:
-            # alpha_taus = 70 - 75/(1 + 0.015*((r/t)**1.1)) # EN 1993-1-6 D.44
+            # alpha_taus : float = 70 - 75/(1 + 0.015*((r/t)**1.1)) # EN 1993-1-6 D.44
 
-            b = 3 - 5/(1 + 0.4*((self.r/self.t)**0.6)) # EN 1993-1-6 D.45
-            C_tau = math.sqrt(1 + alpha_taus/(self.omega**b)) # EN 1993-1-6 D.42
-        elif self.omega < 8.7*self.r/self.t: # EN 1993-1-6 D.38
+            b : float = 3 - 5/(1 + 0.4*((self.r/self.t)**0.6)) # EN 1993-1-6 D.45
+
+            C_tau : float = math.sqrt(1 + alpha_taus/(omega**b)) # EN 1993-1-6 D.42
+
+        elif omega < 8.7*self.r/self.t: # EN 1993-1-6 D.38
             # medium-length cylinder
-            C_tau = 1.0 # EN 1993-1-6 D.41
+            C_tau : float = 1.0 # EN 1993-1-6 D.41
+
         else: # EN 1993-1-6 D.39
             # long cylinder
-            C_tau = math.sqrt(self.omega*self.t/self.r)/3 # EN 1993-1-6 D.46
+            C_tau : float = math.sqrt(omega*self.t/self.r)/3 # EN 1993-1-6 D.46
         return C_tau
 
 if __name__ == "__main__":  
     geoms_filename : str = "Sadowskietal2023-benchmarkgeometries.csv"
 
-    strakeList, H, V = geometry.listStrakeIDs(geoms_filename)
+    strakeList, H = geometry.listStrakeIDs(geoms_filename)
 
     strakes : dict[str | int,strake] = {}
     for ID, strakeID in enumerate(strakeList):

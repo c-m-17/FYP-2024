@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Functions to extract the geometry of any number of truncated conical strakes in a tower,
 and approximate their cylindrical equivalents.
@@ -9,16 +8,19 @@ Also extracts loads from files.
 import math
 import pandas as pd
 
-def averageRadius(d_top: float, d_bottom: float) -> float:
+def meridionalLength(h: float | int, beta: float | int) -> float:
     """
-    Calculates average strake radius, assuming linear variation over the strake height.
+    Calculates meridional length of strake, assuming linear radius variation over the strake height.
 
-    d_top: top diameter of strake
-    d_bottom: bottom diameter of strake
+    beta: Apex half-angle in radians
+    h: Vertical strake height
+
+    returns: Meridional length
     """
-    R = 0.25*(d_top+d_bottom)
 
-    return R
+    L : float = h/math.cos(beta)
+
+    return L
 
 def findStrakeIndex(filename: str, strakeID: str | int) -> tuple[pd.DataFrame,int]:
     """
@@ -31,54 +33,46 @@ def findStrakeIndex(filename: str, strakeID: str | int) -> tuple[pd.DataFrame,in
     returns: strake geometry DataFrame, index of given strake in DataFrame
     """
     geoms : pd.DataFrame = pd.read_csv(filename)
-    I : int = geoms.loc[geoms["ID"] == strakeID].index.tolist()[0]
+    I : str | int = geoms.loc[geoms["ID"] == strakeID].index.tolist()[0]
 
     return geoms, I
 
-def listStrakeIDs(filename: str) -> tuple[pd.Series,float,float]:
+def listStrakeIDs(filename: str) -> tuple[pd.Series,float]:
     """
     Extracts strake IDs from file. Calculates tower height and volume.
 
     filename: relative file path
 
-    returns: strake IDs, tower height, tower volume
+    returns: strake IDs, tower height[m]
     """
     df : pd.DataFrame = pd.read_csv(filename)
     StrakeIDlist : pd.Series = df["ID"]
 
     H : float = sum(df["h (mm)"])/1e3 # total tower height
-    V : float = 0
 
-    for i, ID in enumerate(StrakeIDlist):
-        h, R, t = findStrakeGeometry(filename, ID)
-        V += h*t*2*math.pi*R # tower volume
+    return StrakeIDlist, H
 
-    return StrakeIDlist, H, V
-
-def findStrakeGeometry(filename: str, strakeID: str | int) -> tuple[float,float,float]:
+def findStrakeGeometry(filename: str, strakeID: str | int) -> tuple[float]:
     """
     Approximates the geometry of a conical strake as cylindrical.
 
     filename: relative file path
     strakeID: unique ID of strake
 
-    returns: Height, Radius, Thickness
+    returns: Height, Top diameter, Bottom diameter, Thickness (all in metres)
     """
     geoms, I = findStrakeIndex(filename, strakeID)
 
     h : float = geoms['h (mm)'].iloc[I]/1000
-    beta : float = geoms['beta (rad)'].iloc[I]
-    d_1 : float = geoms['d1 (top) (mm)'].iloc[I]
-    d_2 : float = geoms['d2 (bottom) (mm)'].iloc[I]
+    d_1 : float = geoms['d1 (top) (mm)'].iloc[I]/1000
+    d_2 : float = geoms['d2 (bottom) (mm)'].iloc[I]/1000
     t : float = geoms['t (mm)'].iloc[I]/1000
 
-    R : float = averageRadius(d_1, d_2)/1000
-    return h, R, t
+    return h, d_1, d_2, t
 
-# returns the global z-coordinate of the given strake's bottom boundary
 def findStrakePositionGlobal(filename: str, strakeID: str | int) -> float:
     """
-    Finds global z-coordinate of the bottom of a strake, where z=0 is at base of tower.
+    Finds global z-coordinate of the bottom of a strake, where z=0 is at the base of entire tower.
     
     filename: relative file path
     strakeID: unique ID of strake
@@ -104,6 +98,6 @@ def importLoadMagnitude(loadType: str, filename: str) -> float:
     """
     
     loads : pd.DataFrame = pd.read_csv(filename)
-    A = loads["Magnitude"].loc[loads["Load"] == loadType]
+    A : pd.Series = loads["Magnitude"].loc[loads["Load"] == loadType]
     
     return A.unique()[0]

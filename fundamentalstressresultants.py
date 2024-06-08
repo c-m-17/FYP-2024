@@ -138,7 +138,7 @@ def cumulativeStresses(loads: dict[str,float], Z: np.ndarray[float,float], Theta
     correspond to [N component, theta-coord, z-coord].
     """
 
-    N = np.zeros((3,*np.shape(Z)))
+    N : np.ndarray = np.zeros((3,*np.shape(Z)))
 
     # add stresses
     N += p_rStresses(loads["p_r"],s.r,Z)
