@@ -3,8 +3,8 @@ This script defines the strake class.
 
 @author: Cerys Morley
 """
-import conicalgeometrytocylindrical as geometry
 import math
+import pandas as pd
 
 class strake:
     """
@@ -15,18 +15,17 @@ class strake:
     r_top: Top radius
     r_bot: Bottom radius
     t: Thickness
-    beta: Apex half-angle
+    L: Meridional length
     z0: Global z-coordinate of the strake base (where z=0 is tower base).
     C_x: Critical buckling factor under axial compression
     C_tau: Critical buckling factor under shear.
     """
-    def __init__(self,strakeID: str | int, fileName: str) -> None:
+    def __init__(self, strakeID: str | int, fileName: str) -> None:
         """
         strakeID: unique ID for the strake
         fileName: relative path of file
         """
-        self.h, d_1, d_2, self.t = geometry.findStrakeGeometry(fileName,strakeID)
-        self.z0 : float = geometry.findStrakePositionGlobal(fileName,strakeID)
+        self.h, d_1, d_2, self.t, self.z0 = self.findStrakeGeometry(fileName,strakeID)
 
         self.r_top : float = d_1/2
         self.r_bot : float = d_2/2
@@ -38,6 +37,29 @@ class strake:
         Updates strake's geometric properties when a new radius has been defined.
         """
         self.r : float = (self.r_top + self.r_bot)/2
+
+    def findStrakeGeometry(self, filename: str, strakeID: str | int) -> tuple[float]:
+        """
+        Approximates the geometry of a conical strake as cylindrical.
+
+        filename: File name (in "inputs" folder)
+        strakeID: unique ID of strake
+
+        returns: Height, Top diameter, Bottom diameter, Thickness (all in metres), z0 position
+        """
+        # dataframe & corresponding strake index
+        geoms : pd.DataFrame = pd.read_csv(f"inputs\{filename}")
+        I : str | int = geoms.loc[geoms["ID"] == strakeID].index.tolist()[0]
+
+        h : float = geoms['h (mm)'].iloc[I]/1000
+        d_1 : float = geoms['d1 (top) (mm)'].iloc[I]/1000
+        d_2 : float = geoms['d2 (bottom) (mm)'].iloc[I]/1000
+        t : float = geoms['t (mm)'].iloc[I]/1000
+
+        H : float = sum(geoms["h (mm)"]) # total tower height
+        z0 : float = (H - sum(geoms["h (mm)"].iloc[range(0,I+1,1)]))/1e3 # z*=0 in global z-coord
+
+        return h, d_1, d_2, t, z0
 
     def calcC_x(self, omega: float) -> float:
         """
@@ -87,14 +109,3 @@ class strake:
             # long cylinder
             C_tau : float = math.sqrt(omega*self.t/self.r)/3 # EN 1993-1-6 D.46
         return C_tau
-
-if __name__ == "__main__":  
-    geoms_filename : str = "Sadowskietal2023-benchmarkgeometries.csv"
-
-    strakeList, H = geometry.listStrakeIDs(geoms_filename)
-
-    strakes : dict[str | int,strake] = {}
-    for ID, strakeID in enumerate(strakeList):
-        strakes[strakeID] = strake(strakeID,geoms_filename)
-
-    print(strakes)
