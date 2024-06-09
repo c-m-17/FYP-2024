@@ -27,15 +27,21 @@ class strake:
         """
         self.h, d_1, d_2, self.t, self.z0 = self.findStrakeGeometry(fileName,strakeID)
 
-        self.r_top : float = d_1/2
-        self.r_bot : float = d_2/2
+        self.update(r_top=d_1/2, r_bot=d_2/2)
 
-        self.update()
+    def update(self,*, r_top=None, r_bot=None) -> None:
+        """
+        Updates strake's geometric properties to edit the radii values.
 
-    def update(self) -> None:
+        r_top: Radius of top of strake (float | int)
+        r_bot: Radius of bottom of strake (float | int)
         """
-        Updates strake's geometric properties when a new radius has been defined.
-        """
+        if r_top is not None:
+            self.r_top = r_top
+
+        if r_bot is not None:
+            self.r_bot = r_bot
+        
         self.r : float = (self.r_top + self.r_bot)/2
 
     def findStrakeGeometry(self, filename: str, strakeID: str | int) -> tuple[float]:

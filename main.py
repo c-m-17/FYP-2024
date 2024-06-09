@@ -231,9 +231,8 @@ def volumeFunction(x: np.ndarray, s: strake) -> float:
     returns: Volume of cylindrical strake approximation.
     """
     # update strake object with new geometry
-    s.t = float(abs(x[0]))
-    s.r_bot = float(abs(x[1]))
-    s.update()
+    s.t = float(x[0])
+    s.update(r_bot=float(x[1]))
 
     # calculate volume
     V : float = 2 * math.pi * ((s.r + s.t/2)**2 - (s.r - s.t/2)**2) * s.h
@@ -258,9 +257,8 @@ def resistanceCheck(x : np.ndarray, s: strake, loads: dict[str,float], rho: floa
     which must all be positive to ensure the resistance checks have passed.
     """
     # update strake object with new geometry
-    s.t = float(abs(x[0]))
-    s.r_bot = float(abs(x[1]))
-    s.update()
+    s.t = float(x[0])
+    s.update(r_bot=float(x[1]))
 
     # calculate design stresses
     sigma_thEd, tau_xthEd, sigma_xEd = findMembraneStresses(s,loads,rho)
@@ -293,9 +291,8 @@ def stressInteractionConstraint(x: np.ndarray, s : strake, loads: dict[str,float
     returns: value of interaction check which must be positive to pass.
     """
     # update strake object with new geometry
-    s.t = float(abs(x[0]))
-    s.r_bot = float(abs(x[1]))
-    s.update()
+    s.t = float(x[0])
+    s.update(r_bot=float(x[1]))
 
     # calculate design stresses
     sigma_thEd, tau_xthEd, sigma_xEd = findMembraneStresses(s,loads,rho)
@@ -465,8 +462,7 @@ def main() -> None:
 
         for strakeID, s in strakes.items():
             # update top radius of strake to enforce geometric continuity from previous strake
-            s.r_top = jointRadius
-            s.update()
+            s.update(r_top=jointRadius)
 
             # save loading applied to this strake
             combinedLoading[strakeID] = loads.copy() # shallow copy of current values is fine
@@ -489,7 +485,7 @@ def main() -> None:
             selfWeight[strakeID] = p_zStresses(rho*-9.81*s.t,s.h,Z)
             loads["P"] += selfWeight[strakeID][2,0,0]*2*math.pi*s.r # self-weight resultant at z=z0 added to axial load
             loads["M"] += loads["Q"]*s.h # adds moment induced by shear force over this strake's height to baseline moment loading
-            jointRadius : float = s.r_bot # saves bottom radius of this strake to enforce geometric continuity in next loop
+            jointRadius : float = minimumValues[strakeID].get('x')[1] # saves bottom radius of this strake to enforce geometric continuity in next loop
 
             cumulativeTimer[strakeID] = time.perf_counter_ns() - startTime
 
