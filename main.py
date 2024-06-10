@@ -17,7 +17,7 @@ from strake import strake
 import LS3bucklingcheck as LS3
 
 # functions
-def listStrakeIDs(filename: str) -> tuple[pd.Series,float]:
+def listStrakeIDs(filename: str) -> pd.Series:
     """
     Extracts strake IDs from file. Calculates tower height and volume.
 
@@ -28,9 +28,7 @@ def listStrakeIDs(filename: str) -> tuple[pd.Series,float]:
     df : pd.DataFrame = pd.read_csv(f"inputs\{filename}")
     StrakeIDlist : pd.Series = df["ID"]
 
-    H : float = sum(df["h (mm)"])/1e3 # total tower height
-
-    return StrakeIDlist, H
+    return StrakeIDlist
 
 def importLoadMagnitude(loadType: str, filename: str) -> float:
     """
@@ -421,8 +419,9 @@ parser = argparse.ArgumentParser('Strake optimiser',
                                     epilog="Thanks, bye.")
 parser.add_argument('-g','--geoms', type=str, required=True, help="Initial strake geometries file, in 'inputs/'")
 parser.add_argument('-l','--loads', type=str, required=True, help="Applied loads file, in 'inputs/'")
-parser.add_argument('-m','--minimize', type=bool, default=True, help="Boolean: optimize?")
-parser.add_argument('-o','--outfile', type=bool, default=True, help="Boolean: Output geometry & loading")
+parser.add_argument('-m','--minimize', type=bool, default=True, help="Boolean: optimize? Default=True")
+parser.add_argument('-o','--outfile', type=bool, default=True, help="Boolean: Output geometry and loading. Default=True")
+parser.add_argument('-d','--topdiameter', type=float, help="Top of tower's diameter [in metres], otherwise taken from --geoms")
 
 def main() -> None:
     # parse required input arguments
@@ -443,7 +442,7 @@ def main() -> None:
     loads : dict[str,float] = {load : importLoadMagnitude(load,loads_filename) for load in loadNames}
 
     # import geometry
-    strakeList, H = listStrakeIDs(geoms_filename)
+    strakeList = listStrakeIDs(geoms_filename)
 
     # create strake objects
     strakes : dict[str | int, strake] = {strakeID : strake(strakeID,geoms_filename) for i, strakeID in enumerate(strakeList)}
@@ -457,7 +456,12 @@ def main() -> None:
 
     # loop over strakes for sequential optimisation *if* specified by user
     if args.minimize:
-        jointRadius : float = list(strakes.values())[0].r_top
+        if args.topdiameter: # if specified by user
+            jointRadius : float = args.topdiameter / 2
+        else: # take from input file
+            args.topdiameter = list(strakes.values())[0].r_top * 2
+            jointRadius : float = args.topdiameter / 2
+        
         startTime : int = time.perf_counter_ns()
 
         for strakeID, s in strakes.items():
@@ -491,7 +495,7 @@ def main() -> None:
 
     # write optimiser output to csv files *if* specified by user
     if args.outfile:
-        with open(f"results/{loads_filename.split('.')[0]}-{geoms_filename.split('.')[0]}-new-geometry.csv","x") as fil:
+        with open(f"results/{loads_filename.split('.')[0]}-{geoms_filename.split('.')[0]}-D1-{args.topdiameter}-new-geometry.csv","x") as fil:
             fil.write(f"ID, Volume [m3], t (mm), d2 (bottom) (mm), d1 (top) (mm), h (mm),\n")
             
             for key, s in strakes.items():
@@ -503,7 +507,7 @@ def main() -> None:
                 fil.write(f"{s.h*1e3},")
                 fil.write(f"\n")
 
-        with open(f"results/{loads_filename.split('.')[0]}-{geoms_filename.split('.')[0]}-new-loading.csv","x") as fil:
+        with open(f"results/{loads_filename.split('.')[0]}-{geoms_filename.split('.')[0]}-D1-{args.topdiameter}-new-loading.csv","x") as fil:
             fil.write(f"Strake ID, z0 [m], p_r [Pa], p_th [Pa], p_z [Pa], P [N], Q [N], T [Nm], M [Nm], Self-weight Resultant at z0 [N/m],\n")
 
             for key, s in strakes.items():
@@ -516,7 +520,7 @@ def main() -> None:
                 fil.write(f"{abs(selfWeight[key][2,0,0])},")
                 fil.write(f"\n")
 
-        with open(f"results/{loads_filename.split('.')[0]}-{geoms_filename.split('.')[0]}-optimiser.csv","x") as fil:
+        with open(f"results/{loads_filename.split('.')[0]}-{geoms_filename.split('.')[0]}-D1-{args.topdiameter}-optimiser.csv","x") as fil:
             fil.write(f"Strake ID, Success, Message, Iterations, Fun iterations, Jac iterations, Hess iterations, Max constraint violation, Cumulative loop time [ns],\n")
 
             for key in strakes:
