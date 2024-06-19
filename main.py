@@ -485,7 +485,7 @@ def main() -> None:
             # add loading from this strake to applied loading for next strake
             selfWeight[strakeID] = p_zStresses(rho*-9.81*s.t,s.h,Z)
             loads["P"] += selfWeight[strakeID][2,0,0]*2*math.pi*s.r # self-weight resultant at z=z0 added to axial load
-            loads["M"] += loads["Q"]*s.h # adds moment induced by shear force over this strake's height to baseline moment loading
+            loads["M"] -= loads["Q"]*s.h # adds (negative) moment induced by shear force over this strake's height to baseline moment loading
             jointRadius : float = minimumValues[strakeID].get('x')[1] # saves bottom radius of this strake to enforce geometric continuity in next loop
 
             cumulativeTimer[strakeID] = time.perf_counter_ns() - startTime
