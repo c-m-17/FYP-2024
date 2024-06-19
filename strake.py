@@ -101,7 +101,7 @@ class strake:
             # assuming BC1r or BC2r:
             alpha_taus : float = 120 - 130/(1+ 0.015*self.r/self.t) # EN 1993-1-6 D.43
             # assuming BC1f or BC2f:
-            # alpha_taus : float = 70 - 75/(1 + 0.015*((r/t)**1.1)) # EN 1993-1-6 D.44
+            # alpha_taus : float = 70 - 75/(1 + 0.015*((self.r/self.t)**1.1)) # EN 1993-1-6 D.44
 
             b : float = 3 - 5/(1 + 0.4*((self.r/self.t)**0.6)) # EN 1993-1-6 D.45
 

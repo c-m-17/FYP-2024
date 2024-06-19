@@ -119,7 +119,7 @@ def checkStressInteractions(sigma_Ed: list[float], sigma_Rd: list[float], chi: l
     k_i, alpha_i = calck_iAndalpha_i(chi)
 
     # EN 1993-1-6 9.5.3 (4)
-    sigma_Ed[2] = min(sigma_Ed[2], 0.0) # if sigma_x,Ed is tensile, take 0
+    sigma_Ed[2] = max(sigma_Ed[2], 0.0) # if sigma_x,Ed is tensile, take 0
     sigma_Ed[0] = max(sigma_Ed[0], 0.0) # if sigma_th,Ed is tensile, take 0
 
     # EN 1993-1-6 9.36
@@ -155,6 +155,8 @@ def calck_iAndalpha_i(chi: list[float]) -> tuple[list[float],float]:
 def findAxialBucklingStress(E: float, f_yk: float, fabClass: str, gamma_M1: float, s: strake) -> tuple[float,float]:
     """
     Finds axial design resistance to buckling.
+
+    returns: design resistance, chi_x
     """
     # nested functions
     def initialAxialBucklingCheck(E: float,C_x: float,f_yk: float,r:float,t:float) -> bool:

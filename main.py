@@ -23,7 +23,7 @@ def listStrakeIDs(filename: str) -> pd.Series:
 
     filename: File name (in "inputs" folder)
 
-    returns: strake IDs, tower height[m]
+    returns: strake IDs
     """
     df : pd.DataFrame = pd.read_csv(f"inputs\{filename}")
     StrakeIDlist : pd.Series = df["ID"]
@@ -194,7 +194,7 @@ def findMembraneStresses(s : strake, loads : dict[str,float], rho : float) -> tu
     loads: Value of different applied external load types, including all keys: ["p_r", "p_th", "p_z", "P", "Q", "T", "M"]
     rho: Material density (constant)
 
-    returns: Critical circumferential, shear and meridional stress, in that order.
+    returns: Critical (most compressive) circumferential, shear and meridional stress, in that order.
     """
     # set up coordinate arrays
     theta : np.ndarray = np.linspace(0,2*math.pi,361)
@@ -212,10 +212,10 @@ def findMembraneStresses(s : strake, loads : dict[str,float], rho : float) -> tu
         if v is False:
             raise ArithmeticError("Global equilibrium is not satisfied for "+k)
 
-    # find critical value for each component (most tensile)
+    # find critical value for each component (most compressive)
     sigma_thEd : float = np.amin(N[0,:,:]).tolist()/s.t
     tau_xthEd : float = np.amin(N[1,:,:]).tolist()/s.t  
-    sigma_xEd : float = np.amax(N[2,:,:]).tolist()/s.t 
+    sigma_xEd : float = np.amin(N[2,:,:]).tolist()/s.t 
 
     return sigma_thEd, tau_xthEd, sigma_xEd
 
@@ -266,9 +266,9 @@ def resistanceCheck(x : np.ndarray, s: strake, loads: dict[str,float], rho: floa
     tau_xthRd : float = LS3.findShearBucklingStress(E, f_yk, fabClass, gamma_M1, s)[0]
     sigma_xRd : float = LS3.findAxialBucklingStress(E, f_yk, fabClass, gamma_M1, s)[0]
 
-    # calculate relative errors
+    # calculate relative errors (compressive=+ve inputs)
     relErr : list[float] = relativeError(trueValue=[sigma_thRd, tau_xthRd, sigma_xRd],
-                                         calcValue=[sigma_thEd, tau_xthEd, -sigma_xEd])
+                                         calcValue=[sigma_thEd, -tau_xthEd, -sigma_xEd])
 
     return np.array(relErr)
 
@@ -300,8 +300,8 @@ def stressInteractionConstraint(x: np.ndarray, s : strake, loads: dict[str,float
     tau_xthRd, chi_tau = LS3.findShearBucklingStress(E, f_yk, fabClass, gamma_M1, s)
     sigma_xRd, chi_x = LS3.findAxialBucklingStress(E, f_yk, fabClass, gamma_M1, s)
 
-    # calculate value of buckling interaction check
-    interactionCheck : float = LS3.checkStressInteractions([sigma_thEd, tau_xthEd, sigma_xEd],
+    # calculate value of buckling interaction check (compressive=+ve inputs)
+    interactionCheck : float = LS3.checkStressInteractions([sigma_thEd, -tau_xthEd, -sigma_xEd],
                                                           [sigma_thRd, tau_xthRd, sigma_xRd],
                                                           [chi_theta, chi_tau, chi_x])
 
@@ -417,8 +417,8 @@ def calculateStressErrors(N : np.ndarray[float], loads : dict[str,float], r : fl
 parser = argparse.ArgumentParser('Strake optimiser',
                                     description="Wind Turbine Optimiser",
                                     epilog="Thanks, bye.")
-parser.add_argument('-g','--geoms', type=str, required=True, help="Initial strake geometries file, in 'inputs/'")
-parser.add_argument('-l','--loads', type=str, required=True, help="Applied loads file, in 'inputs/'")
+parser.add_argument('-g','--geoms', type=str, required=True, help="Initial strake geometries file, in 'inputs\\'")
+parser.add_argument('-l','--loads', type=str, required=True, help="Applied loads file, in 'inputs\\'")
 parser.add_argument('-m','--minimize', type=bool, default=True, help="Boolean: optimize? Default=True")
 parser.add_argument('-o','--outfile', type=bool, default=True, help="Boolean: Output geometry and loading. Default=True")
 parser.add_argument('-d','--topdiameter', type=float, help="Top of tower's diameter [in metres], otherwise taken from --geoms")
@@ -430,12 +430,12 @@ def main() -> None:
     loads_filename : str = args.loads.split("\\")[1]
 
     # constants & parameters
-    f_yk : float = 355e6 # characteristic steel strength [N/m2]
+    f_yk : float = 345e6 # characteristic steel strength [N/m2]
     gamma_M1 : float = 1.1 # material partial factor of safety (EN 1993-1-6 Table 4.2)
     E : float = 210e9 # Young's Modulus [N/m2]
     rho : float = 7850 # material density [kg/m3]
     fabClass : str = "A" # fabrication quality class (one of ["A", "B", "C"])
-    beta_max : float = math.pi/8 # maximum apex half-angle [rad]
+    beta_max : float = math.pi/8 # maxim#um apex half-angle [rad]
 
     # import loading
     loadNames : list[str] = ["p_r", "p_th", "p_z", "P", "Q", "T", "M"]
@@ -480,10 +480,7 @@ def main() -> None:
                                                 method="SLSQP", jac="3-point",
                                                 constraints=[{"type":"ineq", "fun" : resistanceCheck, "args" : [s,loads,rho,E,f_yk,fabClass,gamma_M1]},
                                                              {"type":"ineq", "fun" : stressInteractionConstraint, "args" : [s,loads,rho,E,f_yk,fabClass,gamma_M1]}],
-                                                bounds=[(0.002,0.1),(s.r_top, s.r_top+(s.h*math.sin(beta_max)))])
-
-            tau_xthRd : float = LS3.findShearBucklingStress(E, f_yk, fabClass, gamma_M1, s)[0]
-            sigma_xRd : float = LS3.findAxialBucklingStress(E, f_yk, fabClass, gamma_M1, s)[0]
+                                                bounds=[(0.002,0.1),(s.r_top, s.r_top+(s.h*math.tan(beta_max)))])
 
             # add loading from this strake to applied loading for next strake
             selfWeight[strakeID] = p_zStresses(rho*-9.81*s.t,s.h,Z)
@@ -495,8 +492,8 @@ def main() -> None:
 
     # write optimiser output to csv files *if* specified by user
     if args.outfile:
-        with open(f"results/{loads_filename.split('.')[0]}-{geoms_filename.split('.')[0]}-D1-{args.topdiameter}-new-geometry.csv","x") as fil:
-            fil.write(f"ID, Volume [m3], t (mm), d2 (bottom) (mm), d1 (top) (mm), h (mm),\n")
+        with open(f"results/{loads_filename.split('.')[0]}-{geoms_filename.split('.')[0]}-D1-{args.topdiameter}-new-geometry.csv","w") as fil:
+            fil.write(f"ID,Volume (m3),t (mm),d2 (bottom) (mm),d1 (top) (mm),h (mm),C_x,\n")
             
             for key, s in strakes.items():
                 fil.write(f"{key},")
@@ -505,10 +502,11 @@ def main() -> None:
                 fil.write(f"{abs(minimumValues[key].get('x')[1])*2e3},")
                 fil.write(f"{s.r_top*2e3},")
                 fil.write(f"{s.h*1e3},")
+                fil.write(f"{s.calcC_x(LS3.calculateRelativeLength(s))},")
                 fil.write(f"\n")
 
-        with open(f"results/{loads_filename.split('.')[0]}-{geoms_filename.split('.')[0]}-D1-{args.topdiameter}-new-loading.csv","x") as fil:
-            fil.write(f"Strake ID, z0 [m], p_r [Pa], p_th [Pa], p_z [Pa], P [N], Q [N], T [Nm], M [Nm], Self-weight Resultant at z0 [N/m],\n")
+        with open(f"results/{loads_filename.split('.')[0]}-{geoms_filename.split('.')[0]}-D1-{args.topdiameter}-new-loading.csv","w") as fil:
+            fil.write(f"ID,z0 [m],p_r [Pa],p_th [Pa],p_z [Pa],P [N],Q [N],T [Nm],M [Nm],Self-weight Resultant at z0 [N/m],\n")
 
             for key, s in strakes.items():
                 fil.write(f"{key},")
@@ -520,12 +518,12 @@ def main() -> None:
                 fil.write(f"{abs(selfWeight[key][2,0,0])},")
                 fil.write(f"\n")
 
-        with open(f"results/{loads_filename.split('.')[0]}-{geoms_filename.split('.')[0]}-D1-{args.topdiameter}-optimiser.csv","x") as fil:
-            fil.write(f"Strake ID, Success, Message, Iterations, Fun iterations, Jac iterations, Hess iterations, Max constraint violation, Cumulative loop time [ns],\n")
+        with open(f"results/{loads_filename.split('.')[0]}-{geoms_filename.split('.')[0]}-D1-{args.topdiameter}-optimiser.csv","w") as fil:
+            fil.write(f"ID,Success,Message,Iterations,Fun iterations,Jac iterations,Hess iterations,Max constraint violation,Cumulative loop time [ns],\n")
 
             for key in strakes:
                 fil.write(f"{key},")
-                fil.write(f"{minimumValues[key].get('success')},")
+                fil.write(f"{int(minimumValues[key].get('success'))},")
                 fil.write(f"{minimumValues[key].get('message')},")
                 fil.write(f"{minimumValues[key].get('nit')},")
                 fil.write(f"{minimumValues[key].get('nfev')},")

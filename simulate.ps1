@@ -2,7 +2,7 @@
 
 $pythonScriptPath = "C:\Users\cerys\OneDrive\Documents\CivEng\!FYP\FYP-2024\main.py"
 
-for($d=2; $d -le 12; $d++){
+for($d=2; $d -le 11; $d++){
 
     $diam = $d * 0.5
 
