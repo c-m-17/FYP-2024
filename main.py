@@ -403,8 +403,8 @@ def calculateStressErrors(N : np.ndarray[float], loads : dict[str,float], r : fl
     calcValues["Q"] = (np.amax(N[1,:,-1])-np.amin(N[1,:,-1]))*0.5*math.pi*r
     # T = mean(N_zth)*2pi*R^2
     calcValues["T"] = (np.amax(N[1,:,-1])+np.amin(N[1,:,-1])) *2*math.pi*(r**2) /2
-    # M = 1/2*range(N_z)*pi*R^2
-    calcValues["M"] = (np.amax(N[2,:,-1])-np.amin(N[2,:,-1]))*0.5 *math.pi*(r**2)
+    # M = 1/2*range(N_z)*pi*R^2 at z*=h so that Q(h-z)=0
+    calcValues["M"] = (N[2,0,-1]-N[2,math.floor(np.size(N,1)/2),-1])*0.5 *math.pi*(r**2)
 
     for k,key in enumerate(list(loads.keys())[3:]):
         loads[key] = float(loads[key]) # change dtype

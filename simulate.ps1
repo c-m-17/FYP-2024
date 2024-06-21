@@ -1,5 +1,4 @@
 # simulate.ps1
-
 $pythonScriptPath = "C:\Users\cerys\OneDrive\Documents\CivEng\!FYP\FYP-2024\main.py"
 
 for($d=2; $d -le 11; $d++){
